@@ -8,6 +8,7 @@ codex-session-toolkit
 codex-session-toolkit.command
 codex-session-toolkit.cmd
 codex-session-toolkit.ps1
+start.mjs
 install.sh
 install.command
 install.ps1

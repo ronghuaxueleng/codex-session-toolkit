@@ -1410,6 +1410,35 @@ class PackagingSmokeTests(unittest.TestCase):
         )
         self.assertIn("Launcher (Source Mode)", result.stdout)
 
+    def test_node_start_launcher_help_runs(self) -> None:
+        result = subprocess.run(
+            ["node", "./start.mjs", "--help"],
+            cwd=ROOT_DIR,
+            env=_module_env(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True,
+        )
+        self.assertIn("用法: node ./start.mjs", result.stdout)
+        self.assertIn("--action <id>", result.stdout)
+        self.assertIn("可视化启动器", result.stdout)
+
+    def test_node_start_launcher_lists_actions(self) -> None:
+        result = subprocess.run(
+            ["node", "./start.mjs", "--list"],
+            cwd=ROOT_DIR,
+            env=_module_env(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True,
+        )
+        self.assertIn("可用动作", result.stdout)
+        self.assertIn("install", result.stdout)
+        self.assertIn("启动 TUI", result.stdout)
+        self.assertIn("构建发布目录", result.stdout)
+
     def test_unix_install_script_help_runs(self) -> None:
         result = subprocess.run(
             ["sh", "./install.sh", "--help"],
@@ -1428,6 +1457,7 @@ class PackagingSmokeTests(unittest.TestCase):
         unix_installer = (ROOT_DIR / "scripts" / "install" / "install.unix.sh").read_text(encoding="utf-8")
         windows_installer = (ROOT_DIR / "scripts" / "install" / "install.windows.ps1").read_text(encoding="utf-8")
         unix_launcher = (ROOT_DIR / "codex-session-toolkit").read_text(encoding="utf-8")
+        node_launcher = (ROOT_DIR / "start.mjs").read_text(encoding="utf-8")
         windows_launcher = (ROOT_DIR / "codex-session-toolkit.ps1").read_text(encoding="utf-8")
         makefile = (ROOT_DIR / "Makefile").read_text(encoding="utf-8")
 
@@ -1436,6 +1466,7 @@ class PackagingSmokeTests(unittest.TestCase):
         self.assertIn("isolated", unix_installer.lower())
         self.assertIn("isolated", windows_installer.lower())
         self.assertIn('VENV_PYTHON="$VENV_DIR/bin/python"', unix_launcher)
+        self.assertIn("使用 ↑/↓ 移动，Enter 执行，q 退出。", node_launcher)
         self.assertIn('Join-Path $venvScriptsDir "python.exe"', windows_launcher)
         self.assertIn("install: bootstrap-editable", makefile)
         self.assertIn("DEV_PIP_PACKAGES := 'ruff>=0.6,<1.0'", makefile)
@@ -1469,6 +1500,7 @@ class PackagingSmokeTests(unittest.TestCase):
             release_dir = output_dir / f"{APP_COMMAND}-{__version__}"
             self.assertTrue((release_dir / "install.sh").exists())
             self.assertTrue((release_dir / "codex-session-toolkit").exists())
+            self.assertTrue((release_dir / "start.mjs").exists())
 
             install_result = subprocess.run(
                 ["sh", "./install.sh", "--force"],

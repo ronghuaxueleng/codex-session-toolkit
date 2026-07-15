@@ -139,6 +139,7 @@ install_console_wrapper
 for chmod_target in \
   "$PROJECT_ROOT/codex-session-toolkit" \
   "$PROJECT_ROOT/codex-session-toolkit.command" \
+  "$PROJECT_ROOT/start.mjs" \
   "$PROJECT_ROOT/install.sh" \
   "$PROJECT_ROOT/install.command" \
   "$PROJECT_ROOT/release.sh"

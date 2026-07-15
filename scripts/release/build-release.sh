@@ -131,6 +131,7 @@ find "$RELEASE_DIR" -type f \( -name "*.pyc" -o -name "*.pyo" -o -name ".DS_Stor
 chmod +x \
   "$RELEASE_DIR/codex-session-toolkit" \
   "$RELEASE_DIR/codex-session-toolkit.command" \
+  "$RELEASE_DIR/start.mjs" \
   "$RELEASE_DIR/install.sh" \
   "$RELEASE_DIR/install.command"
 

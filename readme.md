@@ -38,6 +38,12 @@ chmod +x ./install.sh ./install.command ./codex-session-toolkit ./codex-session-
 ./codex-session-toolkit
 ```
 
+也可以直接用 Node 启动可视化菜单：
+
+```bash
+node ./start.mjs
+```
+
 macOS 可双击：
 
 - `install.command`
@@ -65,6 +71,43 @@ macOS 可双击：
 ```bash
 ./codex-session-toolkit --advanced-help
 ```
+
+## Node 可视化启动器
+
+如果本机装了 Node.js，也可以使用 `start.mjs` 打开一个中文可视化启动菜单。
+
+启动方式：
+
+```bash
+node ./start.mjs
+```
+
+这个启动器会提供以下入口：
+
+- 安装本地 `.venv`
+- 启动 TUI
+- 查看版本
+- 查看高级帮助
+- 构建发布目录
+
+也支持非交互方式：
+
+```bash
+node ./start.mjs --help
+node ./start.mjs --list
+node ./start.mjs --action launch
+node ./start.mjs --action version
+node ./start.mjs --action release
+```
+
+WSL 中也直接这样用：
+
+```bash
+cd /mnt/e/github/n/codex-session-toolkit
+node ./start.mjs
+```
+
+交互菜单需要在终端 TTY 中运行；如果输出被重定向，启动器会自动退回到帮助和动作列表输出。
 
 ## TUI 主菜单
 

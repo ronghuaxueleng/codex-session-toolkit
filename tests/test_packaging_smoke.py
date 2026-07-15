@@ -1439,6 +1439,32 @@ class PackagingSmokeTests(unittest.TestCase):
         self.assertIn("启动 TUI", result.stdout)
         self.assertIn("构建发布目录", result.stdout)
 
+    def test_node_start_launcher_can_run_version_action(self) -> None:
+        result = subprocess.run(
+            ["node", "./start.mjs", "--action", "version"],
+            cwd=ROOT_DIR,
+            env=_module_env(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True,
+        )
+        self.assertIn("启动器 (Node)", result.stdout)
+        self.assertIn(f"{APP_COMMAND} {__version__}", result.stdout)
+
+    def test_node_start_launcher_release_help_runs(self) -> None:
+        result = subprocess.run(
+            ["node", "./start.mjs", "--action", "release", "--", "--help"],
+            cwd=ROOT_DIR,
+            env=_module_env(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True,
+        )
+        self.assertIn("用法: node ./start.mjs --action release", result.stdout)
+        self.assertIn("release-manifest.txt", result.stdout)
+
     def test_unix_install_script_help_runs(self) -> None:
         result = subprocess.run(
             ["sh", "./install.sh", "--help"],

@@ -221,7 +221,7 @@ def open_project_session_browser(app: "ToolkitTuiApp") -> None:
 def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["SessionSummary"]:
     filter_text = ""
     selected_index = 0
-    selected_session_ids: set[str] = set()
+    selected_session_keys: set[str] = set()
     pointer = glyphs().get("pointer", ">")
     entries: list["SessionSummary"] = []
     needs_reload = True
@@ -233,13 +233,13 @@ def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["Sessio
             except ToolkitError as exc:
                 app._show_detail_panel("读取会话失败", [str(exc)], border_codes=(Ansi.DIM, Ansi.RED))
                 return None
-            selected_session_ids.intersection_update({entry.session_id for entry in entries})
+            selected_session_keys.intersection_update({_session_selection_key(entry) for entry in entries})
             needs_reload = False
 
         selected_index = clamp_selected_index(selected_index, len(entries))
         box_width, center = app._screen_layout()
         subtitle = (
-            "↑/↓ 选择 · 空格勾选 · Enter/d 详情 · / 搜索 · e 导出选中/当前 · a 选中全部 · q 返回"
+            "↑/↓ 选择 · 空格勾选 · Enter/d 详情 · / 搜索 · e 导出选中/当前 · x 删除选中/当前 · a 选中全部 · q 返回"
             if mode == "view"
             else "↑/↓ 选择 · Enter 确认 · / 搜索 · d 查看详情 · q 返回"
         )
@@ -248,7 +248,7 @@ def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["Sessio
         info_lines = [
             f"{style_text('搜索词', Ansi.DIM)} : {filter_text or '（无）'}",
             f"{style_text('匹配数量', Ansi.DIM)} : {len(entries)}",
-            f"{style_text('已勾选', Ansi.DIM)}   : {len(selected_session_ids)}",
+            f"{style_text('已勾选', Ansi.DIM)}   : {len(selected_session_keys)}",
             f"{style_text('模式', Ansi.DIM)}   : {'浏览 / 直接操作' if mode == 'view' else '选择后导出'}",
         ]
 
@@ -260,7 +260,7 @@ def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["Sessio
             for idx in range(start, end):
                 summary = entries[idx]
                 preview = summary.thread_name or summary.preview or summary.path.name
-                marker = "[x]" if summary.session_id in selected_session_ids else "[ ]"
+                marker = "[x]" if _session_selection_key(summary) in selected_session_keys else "[ ]"
                 line = (
                     f"{pointer if idx == selected_index else ' '} {marker if mode == 'view' else ''} "
                     f"{summary.session_id} | {summary.kind}/{summary.scope} | {preview}"
@@ -295,12 +295,12 @@ def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["Sessio
 
         key = read_key()
         if key is None:
-            raw_prompt = "命令 [Enter/空格/e/a/\\/d/q]：" if mode == "view" else "命令 [Enter/\\/d/q]："
+            raw_prompt = "命令 [Enter/空格/e/x/a/\\/d/q]：" if mode == "view" else "命令 [Enter/\\/d/q]："
             raw = input(raw_prompt).strip()
             key = raw if raw else "ENTER"
 
         if key == " " and mode == "view" and entries:
-            _toggle_selected_session(selected_session_ids, entries[selected_index])
+            _toggle_selected_session(selected_session_keys, entries[selected_index], key_fn=_session_selection_key)
             continue
 
         transition = apply_list_key(
@@ -338,38 +338,72 @@ def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["Sessio
             )
             filter_text = new_filter or ""
             selected_index = 0
-            selected_session_ids.clear()
+            selected_session_keys.clear()
             needs_reload = True
             continue
         if key_str == "e" and entries and mode == "view":
-            selected_entries = _selected_or_current_sessions(entries, selected_index, selected_session_ids)
+            selected_entries = _selected_or_current_sessions(
+                entries,
+                selected_index,
+                selected_session_keys,
+                key_fn=_session_selection_key,
+            )
             _run_selected_session_export(app, selected_entries)
-            selected_session_ids.clear()
+            selected_session_keys.clear()
+            continue
+        if key_str == "x" and entries and mode == "view":
+            selected_entries = _selected_or_current_sessions(
+                entries,
+                selected_index,
+                selected_session_keys,
+                key_fn=_session_selection_key,
+            )
+            _run_selected_session_delete(app, selected_entries)
+            selected_session_keys.clear()
+            needs_reload = True
             continue
         if key_str == "a" and mode == "view":
             all_entries = _all_session_entries_for_current_filter(app, filter_text=filter_text)
-            _select_matching_sessions(app, selected_session_ids, all_entries, empty_title="会话选择")
+            _select_matching_sessions(
+                app,
+                selected_session_keys,
+                all_entries,
+                empty_title="会话选择",
+                key_fn=_session_selection_key,
+            )
             if all_entries:
                 entries = all_entries
             continue
 
 
-def _toggle_selected_session(selected_session_ids: set[str], summary: "SessionSummary") -> None:
-    if summary.session_id in selected_session_ids:
-        selected_session_ids.remove(summary.session_id)
+def _session_selection_key(summary: "SessionSummary") -> str:
+    return str(summary.path)
+
+
+def _toggle_selected_session(
+    selected_keys: set[str],
+    summary: "SessionSummary",
+    *,
+    key_fn=lambda summary: summary.session_id,
+) -> None:
+    selected_key = key_fn(summary)
+    if selected_key in selected_keys:
+        selected_keys.remove(selected_key)
     else:
-        selected_session_ids.add(summary.session_id)
+        selected_keys.add(selected_key)
 
 
 def _selected_or_current_sessions(
     entries: list["SessionSummary"],
     selected_index: int,
-    selected_session_ids: set[str],
+    selected_keys: set[str],
+    *,
+    key_fn=lambda summary: summary.session_id,
 ) -> list["SessionSummary"]:
     selected_entries = [
         entry
         for entry in entries
-        if entry.session_id in selected_session_ids
+        if key_fn(entry) in selected_keys
     ]
     if not selected_entries and entries:
         selected_entries = [entries[selected_index]]
@@ -414,10 +448,11 @@ def _all_project_session_entries_for_current_filter(
 
 def _select_matching_sessions(
     app: "ToolkitTuiApp",
-    selected_session_ids: set[str],
+    selected_keys: set[str],
     entries: list["SessionSummary"],
     *,
     empty_title: str,
+    key_fn=lambda summary: summary.session_id,
 ) -> None:
     if not entries:
         app._show_detail_panel(
@@ -427,7 +462,7 @@ def _select_matching_sessions(
         )
         return
     for entry in entries:
-        selected_session_ids.add(entry.session_id)
+        selected_keys.add(key_fn(entry))
 
 
 def _run_selected_session_export(app: "ToolkitTuiApp", summaries: list["SessionSummary"]) -> None:
@@ -452,6 +487,39 @@ def _run_selected_session_export(app: "ToolkitTuiApp", summaries: list["SessionS
         dry_run=False,
         runner=lambda args=cli_args: app._run_toolkit(args),
         danger=False,
+    )
+
+
+def _run_selected_session_delete(app: "ToolkitTuiApp", summaries: list["SessionSummary"]) -> None:
+    if not summaries:
+        app._show_detail_panel(
+            "删除会话",
+            ["当前没有可删除的会话。"],
+            border_codes=(Ansi.DIM, Ansi.YELLOW),
+        )
+        return
+    cli_args = ["delete-sessions", *(str(summary.path) for summary in summaries)]
+    count = len(summaries)
+    warning = (
+        f"将删除会话 {summaries[0].session_id}。"
+        if count == 1
+        else f"将删除已勾选的 {count} 个会话。"
+    )
+    impact = str(summaries[0].path) if count == 1 else f"{count} 个会话文件"
+    if not app._confirm_dangerous_action(
+        cli_args,
+        title="删除会话确认",
+        subtitle="该操作会删除选中的本机会话文件。",
+        warning=warning,
+        impact=impact,
+    ):
+        return
+    app._run_action(
+        f"删除会话 {summaries[0].session_id}" if count == 1 else f"删除 {count} 个会话",
+        cli_args,
+        dry_run=False,
+        runner=lambda args=cli_args: app._run_toolkit(args),
+        danger=True,
     )
 
 

@@ -26,6 +26,7 @@ from .models import (
     SessionBackupDeleteResult,
     SessionBackupRestoreResult,
     SessionBackupSummary,
+    SessionDeleteResult,
     SessionSummary,
     ValidationReport,
 )
@@ -49,6 +50,7 @@ from .presenters.reports import (
     print_session_backup_delete_result,
     print_session_backup_restore_result,
     print_session_backup_rows,
+    print_session_delete_result,
     print_session_rows,
     print_validation_report,
 )
@@ -61,6 +63,7 @@ from .services.importing import import_desktop_all, import_selected_bundles, imp
 from .services.github_sync import configure_github_proxy, connect_bundles_to_github, get_github_sync_status, pull_bundles_from_github, sync_bundles_to_github
 from .services.provider import detect_provider
 from .services.repair import repair_desktop
+from .services.session_deletion import delete_sessions
 from .services.skills_transfer import export_skills, import_selected_skill_bundles, import_skill_bundle
 
 
@@ -125,6 +128,7 @@ __all__ = [
     "SessionBackupDeleteResult",
     "SessionBackupRestoreResult",
     "SessionBackupSummary",
+    "SessionDeleteResult",
     "SessionSummary",
     "ToolkitError",
     "ValidationReport",
@@ -133,6 +137,7 @@ __all__ = [
     "configure_github_proxy",
     "create_parser",
     "delete_archived_sessions",
+    "delete_sessions",
     "delete_migrated_original_sessions",
     "delete_session_backup",
     "detect_provider",
@@ -175,6 +180,7 @@ __all__ = [
     "print_session_backup_delete_result",
     "print_session_backup_restore_result",
     "print_session_backup_rows",
+    "print_session_delete_result",
     "print_session_rows",
     "print_validation_report",
     "repair_desktop",

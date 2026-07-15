@@ -31,7 +31,7 @@ import codex_session_toolkit.tui_app as tui_app_compat  # noqa: E402
 from codex_session_toolkit.cli import DEFAULT_MODEL_PROVIDER, create_arg_parser  # noqa: E402
 from codex_session_toolkit.tui.maintenance_modes import run_cleanup_mode, run_clone_mode  # noqa: E402
 from codex_session_toolkit.tui.action_flows import build_delete_archived_sessions_cli_args, build_desktop_repair_cli_args, execute_menu_action, resolve_menu_action_request, run_action  # noqa: E402
-from codex_session_toolkit.tui.browser_flows import open_project_session_browser  # noqa: E402
+from codex_session_toolkit.tui.browser_flows import open_project_session_browser, open_session_browser  # noqa: E402
 from codex_session_toolkit.tui.github_flows import show_github_sync_status  # noqa: E402
 from codex_session_toolkit.tui.menu_catalog import TUI_ACTION_SECTION_OVERRIDES, build_tui_menu_actions, build_tui_menu_sections, tui_action_section  # noqa: E402
 from codex_session_toolkit.tui.progress_flows import ProgressSubprocessResult  # noqa: E402
@@ -1078,6 +1078,22 @@ class PackagingSmokeTests(unittest.TestCase):
         self.assertEqual(parsed.project, "demo-project")
         self.assertEqual(parsed.target_project_path, "/tmp/demo-project")
 
+    def test_delete_sessions_parser_accepts_ids_and_paths(self) -> None:
+        parser = build_command_parser()
+
+        parsed = parser.parse_args([
+            "delete-sessions",
+            "session-a",
+            "/tmp/demo/rollout-2026-04-10T10-00-00-session-b.jsonl",
+            "--dry-run",
+        ])
+
+        self.assertEqual(
+            parsed.input_values,
+            ["session-a", "/tmp/demo/rollout-2026-04-10T10-00-00-session-b.jsonl"],
+        )
+        self.assertTrue(parsed.dry_run)
+
     def test_skills_parsers_accept_multiple_selected_inputs(self) -> None:
         parser = build_command_parser()
 
@@ -1196,6 +1212,62 @@ class PackagingSmokeTests(unittest.TestCase):
             build_delete_archived_sessions_cli_args(dry_run=True),
             ["delete-archived-sessions", "--dry-run"],
         )
+
+    def test_session_browser_delete_uses_exact_rollout_paths(self) -> None:
+        class DeleteSessionApp:
+            paths = CodexPaths(home=Path("/tmp"))
+
+            def __init__(self) -> None:
+                self.confirm_calls = []
+                self.run_calls = []
+
+            def _screen_layout(self):
+                return 80, False
+
+            def _fit_lines_to_screen(self, lines):
+                return lines
+
+            def _show_detail_panel(self, *args, **kwargs):
+                raise AssertionError("delete path flow should not open detail in this test")
+
+            def _confirm_dangerous_action(self, cli_args, **kwargs):
+                self.confirm_calls.append((list(cli_args), kwargs))
+                return True
+
+            def _run_action(self, action_name, cli_args, **kwargs):
+                self.run_calls.append((action_name, list(cli_args), kwargs))
+
+            def _run_toolkit(self, args):
+                raise AssertionError("delete browser test should not execute fallback runner")
+
+        summary = SimpleNamespace(
+            session_id="demo-session",
+            kind="desktop",
+            scope="active",
+            thread_name="Demo thread",
+            preview="",
+            path=Path("/tmp/home/.codex/sessions/2026/04/10/rollout-2026-04-10T10-00-00-demo-session.jsonl"),
+            cwd="/tmp/demo-project",
+            model_provider="demo-provider",
+        )
+        app = DeleteSessionApp()
+
+        with patch("codex_session_toolkit.tui.browser_flows.get_session_summaries", return_value=[summary]):
+            with patch("codex_session_toolkit.tui.browser_flows.read_key", side_effect=["x", "q"]):
+                with redirect_stdout(io.StringIO()):
+                    open_session_browser(app, mode="view")
+
+        self.assertEqual(len(app.confirm_calls), 1)
+        confirm_args, _ = app.confirm_calls[0]
+        self.assertEqual(
+            confirm_args,
+            ["delete-sessions", str(summary.path)],
+        )
+        self.assertEqual(len(app.run_calls), 1)
+        action_name, cli_args, kwargs = app.run_calls[0]
+        self.assertEqual(action_name, "删除会话 demo-session")
+        self.assertEqual(cli_args, ["delete-sessions", str(summary.path)])
+        self.assertTrue(kwargs["danger"])
 
     def test_logo_font_covers_toolkit_wordmark(self) -> None:
         missing = {ch for ch in "CODEX SESSION TOOLKIT" if ch != " " and ch not in LOGO_FONT_BANNER}

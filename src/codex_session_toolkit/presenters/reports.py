@@ -25,6 +25,7 @@ from ..models import (
     SessionBackupDeleteResult,
     SessionBackupRestoreResult,
     SessionBackupSummary,
+    SessionDeleteResult,
     SessionSummary,
     SkillBundleSummary,
     SkillDeleteResult,
@@ -328,6 +329,28 @@ def print_archived_session_delete_result(result: ArchivedSessionDeleteResult) ->
     action = "Would delete archived sessions" if result.dry_run else "Deleted archived sessions"
     print(action)
     print(f"Archive root: {result.archive_root}")
+    print(f"Session files: {len(result.files_to_delete)}")
+    print(f"Unique sessions: {len(result.session_ids)}")
+    print(f"Bytes: {result.bytes_to_delete}")
+    print(f"Threads table rows removed: {result.thread_rows_removed}")
+    print(f"Threads table rows kept active: {result.thread_rows_restored}")
+    print(f"Session index entries removed: {result.index_entries_removed}")
+    if not result.dry_run:
+        print(f"Deleted files: {len(result.deleted_files)}")
+        print(f"Empty directories removed: {result.empty_dirs_removed}")
+    for target_path, reason in result.errors:
+        print(f"[Error] Deleting {target_path}: {reason}", file=sys.stderr)
+    if result.dry_run:
+        for target_path in result.files_to_delete[:20]:
+            print(f"[DRY-RUN] Would delete: {target_path}")
+        if len(result.files_to_delete) > 20:
+            print(f"[DRY-RUN] ... +{len(result.files_to_delete) - 20} more")
+    return 1 if result.errors else 0
+
+
+def print_session_delete_result(result: SessionDeleteResult) -> int:
+    action = "Would delete sessions" if result.dry_run else "Deleted sessions"
+    print(action)
     print(f"Session files: {len(result.files_to_delete)}")
     print(f"Unique sessions: {len(result.session_ids)}")
     print(f"Bytes: {result.bytes_to_delete}")

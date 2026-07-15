@@ -48,6 +48,7 @@ from codex_session_toolkit.services.github_sync import (  # noqa: E402
     sync_bundles_to_github,
 )
 from codex_session_toolkit.services.archived_sessions import delete_archived_sessions  # noqa: E402
+from codex_session_toolkit.services.session_deletion import delete_sessions  # noqa: E402
 from codex_session_toolkit.services.importing import import_desktop_all, import_selected_bundles, import_session  # noqa: E402
 from codex_session_toolkit.services.provider import detect_provider  # noqa: E402
 from codex_session_toolkit.services.repair import repair_desktop  # noqa: E402
@@ -3301,6 +3302,177 @@ class CoreWorkflowTests(unittest.TestCase):
             ).fetchone()
             conn.close()
             self.assertEqual(row, (str(active_file), 0, None))
+
+    def test_delete_sessions_removes_active_rollouts_index_and_desktop_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir) / "workspace"
+            home = Path(tmpdir) / "home"
+            workspace.mkdir()
+            write_config(home, "provider")
+            write_state_file(home)
+            db_path = create_threads_db(home)
+
+            active_id = "55555555-6666-4777-8888-999999999999"
+            other_id = "66666666-7777-4888-9999-aaaaaaaaaaaa"
+            active_file = write_session(
+                home,
+                active_id,
+                provider="provider",
+                source="vscode",
+                originator="Codex Desktop",
+                cwd=workspace / "active-project",
+            )
+            other_file = write_session(
+                home,
+                other_id,
+                provider="provider",
+                source="vscode",
+                originator="Codex Desktop",
+                cwd=workspace / "other-project",
+            )
+            (home / ".codex" / "session_index.jsonl").write_text(
+                "\n".join(
+                    [
+                        json.dumps({"id": active_id, "thread_name": "active", "updated_at": "2026-04-10T10:06:00Z"}, separators=(",", ":")),
+                        json.dumps({"id": other_id, "thread_name": "other", "updated_at": "2026-04-10T10:07:00Z"}, separators=(",", ":")),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            conn = sqlite3.connect(db_path)
+            for session_id, rollout_path in [(active_id, active_file), (other_id, other_file)]:
+                conn.execute(
+                    """
+                    insert into threads (
+                        id, rollout_path, created_at, updated_at, source, model_provider, cwd, title,
+                        sandbox_policy, approval_mode, tokens_used, has_user_event, archived, cli_version,
+                        first_user_message, memory_mode
+                    ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        session_id,
+                        str(rollout_path),
+                        0,
+                        0,
+                        "vscode",
+                        "provider",
+                        str(workspace),
+                        session_id,
+                        "{}",
+                        "on-request",
+                        0,
+                        1,
+                        0,
+                        "0.1.0",
+                        session_id,
+                        "enabled",
+                    ),
+                )
+            conn.commit()
+            conn.close()
+
+            paths = CodexPaths(home=home)
+            dry_run = delete_sessions(paths, input_values=[active_id], dry_run=True)
+            self.assertEqual(dry_run.files_to_delete, [active_file])
+            self.assertEqual(dry_run.session_ids, [active_id])
+            self.assertEqual(dry_run.thread_rows_removed, 1)
+            self.assertEqual(dry_run.index_entries_removed, 1)
+            self.assertTrue(active_file.exists())
+
+            result = delete_sessions(paths, input_values=[active_id])
+            self.assertEqual(result.deleted_files, [active_file])
+            self.assertEqual(result.session_ids, [active_id])
+            self.assertEqual(result.thread_rows_removed, 1)
+            self.assertEqual(result.index_entries_removed, 1)
+            self.assertFalse(active_file.exists())
+            self.assertTrue(other_file.exists())
+
+            index_lines = (home / ".codex" / "session_index.jsonl").read_text(encoding="utf-8").splitlines()
+            self.assertEqual([json.loads(raw)["id"] for raw in index_lines], [other_id])
+
+            conn = sqlite3.connect(db_path)
+            rows = conn.execute("select id from threads order by id").fetchall()
+            conn.close()
+            self.assertEqual(rows, [(other_id,)])
+
+    def test_delete_sessions_by_path_only_removes_targeted_active_duplicate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir) / "workspace"
+            home = Path(tmpdir) / "home"
+            workspace.mkdir()
+            write_config(home, "provider")
+            write_state_file(home)
+            db_path = create_threads_db(home)
+
+            session_id = "77777777-8888-4999-aaaa-bbbbbbbbbbbb"
+            active_file = write_session(
+                home,
+                session_id,
+                provider="provider",
+                source="vscode",
+                originator="Codex Desktop",
+                cwd=workspace / "active-project",
+            )
+            archived_file = write_session(
+                home,
+                session_id,
+                provider="provider",
+                source="vscode",
+                originator="Codex Desktop",
+                cwd=workspace / "archived-project",
+                archived=True,
+            )
+            (home / ".codex" / "session_index.jsonl").write_text(
+                json.dumps(
+                    {"id": session_id, "thread_name": "duplicate title", "updated_at": "2026-04-10T10:06:00Z"},
+                    separators=(",", ":"),
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            conn = sqlite3.connect(db_path)
+            conn.execute(
+                """
+                insert into threads (
+                    id, rollout_path, created_at, updated_at, source, model_provider, cwd, title,
+                    sandbox_policy, approval_mode, tokens_used, has_user_event, archived, cli_version,
+                    first_user_message, memory_mode
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    str(active_file),
+                    0,
+                    0,
+                    "vscode",
+                    "provider",
+                    str(workspace / "active-project"),
+                    session_id,
+                    "{}",
+                    "on-request",
+                    0,
+                    1,
+                    0,
+                    "0.1.0",
+                    session_id,
+                    "enabled",
+                ),
+            )
+            conn.commit()
+            conn.close()
+
+            paths = CodexPaths(home=home)
+            result = delete_sessions(paths, input_values=[str(active_file)])
+
+            self.assertEqual(result.deleted_files, [active_file])
+            self.assertFalse(active_file.exists())
+            self.assertTrue(archived_file.exists())
+            self.assertEqual(result.thread_rows_removed, 1)
+            self.assertEqual(result.thread_rows_restored, 0)
+            self.assertEqual(result.index_entries_removed, 1)
 
     def test_repair_desktop_repairs_desktop_registered_cli_session(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

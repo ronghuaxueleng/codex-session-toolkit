@@ -117,6 +117,7 @@ class FakeSessionBrowserApp:
     def __init__(self) -> None:
         self.run_calls = []
         self.detail_calls = []
+        self.confirm_calls = []
 
     def _screen_layout(self):
         return 80, True
@@ -132,6 +133,10 @@ class FakeSessionBrowserApp:
 
     def _session_detail_lines(self, summary):
         return [summary.session_id]
+
+    def _confirm_dangerous_action(self, cli_args, **kwargs):
+        self.confirm_calls.append((list(cli_args), kwargs))
+        return True
 
     def _run_action(self, action_name, cli_args, **kwargs):
         self.run_calls.append((action_name, list(cli_args), kwargs))
@@ -563,7 +568,7 @@ class TuiBrowserRenderingTests(unittest.TestCase):
         self.assertEqual(app.run_calls[1][0], "导出 2 个会话为 Bundle")
         self.assertEqual(app.run_calls[1][1], ["export", first_id, second_id])
 
-    def test_session_browser_does_not_export_on_delete_key(self) -> None:
+    def test_session_browser_delete_key_triggers_delete_not_export(self) -> None:
         session_id = "11111111-2222-4333-8444-555555555555"
         app = FakeSessionBrowserApp()
 
@@ -578,7 +583,10 @@ class TuiBrowserRenderingTests(unittest.TestCase):
             stack.enter_context(redirect_stdout(TtyStringIO()))
             open_session_browser(app, mode="view")
 
-        self.assertFalse(app.run_calls)
+        self.assertEqual(len(app.confirm_calls), 1)
+        self.assertEqual(app.run_calls[0][0], f"删除会话 {session_id}")
+        self.assertEqual(app.run_calls[0][1], ["delete-sessions", str(active_summary(session_id).path)])
+        self.assertTrue(app.run_calls[0][2]["danger"])
 
     def test_project_session_browser_can_export_current_session(self) -> None:
         session_id = "11111111-2222-4333-8444-555555555555"

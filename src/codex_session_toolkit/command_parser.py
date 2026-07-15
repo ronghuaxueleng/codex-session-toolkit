@@ -194,6 +194,10 @@ def create_parser() -> argparse.ArgumentParser:
     delete_backup_parser.add_argument("input_value", help="Backup path, backup filename, or session id")
     delete_backup_parser.add_argument("--dry-run", action="store_true", help="Preview the backup that would be deleted")
 
+    delete_sessions_parser = subparsers.add_parser("delete-sessions", help=command_help("delete-sessions"))
+    delete_sessions_parser.add_argument("input_values", nargs="*", help="Session ids or exact rollout file paths to delete")
+    delete_sessions_parser.add_argument("--dry-run", action="store_true", help="Preview session rollouts that would be deleted")
+
     delete_archived_parser = subparsers.add_parser(
         "delete-archived-sessions",
         help=command_help("delete-archived-sessions"),

@@ -2463,6 +2463,49 @@ class CoreWorkflowTests(unittest.TestCase):
             manifest = load_manifest(export_result.bundle_dir / "manifest.env")
             self.assertEqual(manifest["THREAD_NAME"], "Recovered export title from rollout prompt")
 
+    def test_export_session_accepts_inherited_parent_session_meta(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir) / "workspace"
+            src_home = Path(tmpdir) / "src_home"
+            workspace.mkdir()
+
+            parent_session_id = "17171717-1717-1717-1717-171717171717"
+            session_id = "18181818-1818-1818-1818-181818181818"
+            session_file = write_session(
+                src_home,
+                session_id,
+                provider="source-provider",
+                source="cli",
+                originator="Codex CLI",
+                cwd=workspace,
+                user_message="Forked session prompt",
+            )
+            records = session_file.read_text(encoding="utf-8").splitlines()
+            inherited_meta = {
+                "timestamp": "2026-03-19T22:00:41Z",
+                "type": "session_meta",
+                "payload": {
+                    "id": parent_session_id,
+                    "model_provider": "source-provider",
+                    "source": "cli",
+                    "originator": "Codex CLI",
+                    "cwd": str(workspace),
+                    "timestamp": "2026-03-19T22:00:41Z",
+                    "cli_version": "0.1.0",
+                },
+            }
+            session_file.write_text(
+                "\n".join([records[0], json.dumps(inherited_meta), *records[1:]]) + "\n",
+                encoding="utf-8",
+            )
+
+            with pushd(workspace):
+                export_result = export_session(CodexPaths(home=src_home), session_id)
+
+            bundled_session = export_result.bundle_dir / "codex" / session_file.relative_to(src_home / ".codex")
+            self.assertTrue(bundled_session.is_file())
+            self.assertEqual(read_session_payload(bundled_session)["id"], session_id)
+
     def test_export_session_prefers_desktop_sqlite_title(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             workspace = Path(tmpdir) / "workspace"

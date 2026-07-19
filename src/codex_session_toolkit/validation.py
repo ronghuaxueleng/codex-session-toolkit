@@ -103,7 +103,7 @@ def validate_jsonl_file(
                 raise ToolkitError(f"{file_label} line {line_number} is not a JSON object.")
 
             if file_kind == "session":
-                if obj.get("type") == "session_meta":
+                if obj.get("type") == "session_meta" and not found_session_meta:
                     found_session_meta = True
                     payload = obj.get("payload")
                     payload_session_id = payload.get("id") if isinstance(payload, dict) else None

@@ -180,6 +180,8 @@ def write_session(
     user_message: str = "",
     explicit_thread_name: str = "",
     include_env_context: bool = False,
+    thread_source: str = "user",
+    parent_thread_id: str = "",
 ) -> Path:
     base = home / ".codex" / ("archived_sessions" if archived else "sessions") / "2026" / "04" / "10"
     base.mkdir(parents=True, exist_ok=True)
@@ -196,9 +198,12 @@ def write_session(
                 "cwd": str(cwd),
                 "timestamp": timestamp,
                 "cli_version": "0.1.0",
+                "thread_source": thread_source,
             },
         },
     ]
+    if parent_thread_id:
+        lines[0]["payload"]["parent_thread_id"] = parent_thread_id
     if include_env_context:
         lines.append(
             {
@@ -2221,6 +2226,75 @@ class CoreWorkflowTests(unittest.TestCase):
             payload_by_id = {read_session_payload(path)["id"]: read_session_payload(path) for path in imported_sessions}
             self.assertEqual(payload_by_id[root_session]["cwd"], str(target_project))
             self.assertEqual(payload_by_id[nested_session]["cwd"], str(target_project / "packages" / "ui"))
+
+    def test_project_batch_import_skips_subagents_unless_explicitly_included(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir) / "workspace"
+            src_home = Path(tmpdir) / "src_home"
+            default_dst_home = Path(tmpdir) / "default_dst_home"
+            full_dst_home = Path(tmpdir) / "full_dst_home"
+            project = workspace / "demo-project"
+            project.mkdir(parents=True)
+            write_config(src_home, "source-provider")
+            write_config(default_dst_home, "target-provider")
+            write_config(full_dst_home, "target-provider")
+
+            parent_id = "12341234-1234-1234-1234-123412341234"
+            subagent_id = "56785678-5678-5678-5678-567856785678"
+            write_session(
+                src_home,
+                parent_id,
+                provider="source-provider",
+                source="vscode",
+                originator="Codex Desktop",
+                cwd=project,
+                user_message="top-level task",
+            )
+            write_session(
+                src_home,
+                subagent_id,
+                provider="source-provider",
+                source="vscode",
+                originator="Codex Desktop",
+                cwd=project,
+                user_message="internal worker task",
+                thread_source="subagent",
+                parent_thread_id=parent_id,
+            )
+
+            with pushd(workspace):
+                export_project_sessions(CodexPaths(home=src_home), str(project))
+                default_result = import_desktop_all(
+                    CodexPaths(home=default_dst_home),
+                    project_filter="demo-project",
+                )
+                full_result = import_desktop_all(
+                    CodexPaths(home=full_dst_home),
+                    project_filter="demo-project",
+                    include_subagents=True,
+                )
+
+            self.assertEqual([path.name for path in default_result.success_dirs], [parent_id])
+            self.assertFalse(default_result.include_subagents)
+            self.assertEqual(default_result.skipped_subagent_count, 1)
+            self.assertEqual(
+                {
+                    read_session_payload(path)["id"]
+                    for path in iter_session_files(CodexPaths(home=default_dst_home), active_only=False)
+                },
+                {parent_id},
+            )
+
+            self.assertEqual({path.name for path in full_result.success_dirs}, {parent_id, subagent_id})
+            self.assertTrue(full_result.include_subagents)
+            self.assertEqual(full_result.skipped_subagent_count, 0)
+            self.assertEqual(
+                {
+                    read_session_payload(path)["id"]
+                    for path in iter_session_files(CodexPaths(home=full_dst_home), active_only=False)
+                },
+                {parent_id, subagent_id},
+            )
 
     def test_export_validate_and_import_roundtrip_updates_desktop_state(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

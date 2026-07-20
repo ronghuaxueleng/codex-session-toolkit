@@ -20,6 +20,7 @@ from .bundle_layout import (
     infer_bundle_project_metadata,
     source_group_allows_export_group,
 )
+from .session_parser import parse_session_summary_file
 from .skills_manifest import SKILLS_MANIFEST_FILENAME, read_skills_manifest
 
 
@@ -81,6 +82,21 @@ def bundle_directory_sort_key(bundle_dir: Path) -> Tuple[int, int, str]:
     except OSError:
         modified_ns = 0
     return (exported_epoch, modified_ns, str(bundle_dir))
+
+
+def bundle_contains_subagent_session(summary: BundleSummary) -> bool:
+    """Return whether a session bundle contains an internal subagent rollout."""
+    if not summary.relative_path:
+        return False
+    session_file = summary.bundle_dir / "codex" / Path(summary.relative_path)
+    try:
+        parsed = parse_session_summary_file(
+            session_file,
+            include_first_user_prompt=False,
+        )
+    except (ToolkitError, OSError):
+        return False
+    return parsed.session_meta.get("thread_source") == "subagent"
 
 
 def collect_bundle_summaries(

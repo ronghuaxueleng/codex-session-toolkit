@@ -47,6 +47,7 @@ def build_bundle_import_cli_args(
     selection: "BatchBundleImportSelection",
     *,
     create_missing_workspace: bool,
+    include_subagents: bool = False,
 ) -> list[str]:
     args = ["import", "--desktop-visible"]
     if not create_missing_workspace:
@@ -59,6 +60,8 @@ def build_bundle_import_cli_args(
         args.extend(["--project", selection.project_filter])
     if selection.target_project_path:
         args.extend(["--target-project-path", selection.target_project_path])
+    if include_subagents:
+        args.append("--include-subagents")
     args.extend(str(entry.bundle_dir) for entry in selection.entries)
     return args
 
@@ -407,7 +410,20 @@ def resolve_menu_action_request(app: "ToolkitTuiApp", menu_action: "TuiMenuActio
             no_label="n",
             default_yes=default_yes,
         )
-        args = build_bundle_import_cli_args(selection, create_missing_workspace=create_missing_workspace)
+        include_subagents = False
+        if selection.project_filter:
+            include_subagents = app._confirm_toggle(
+                title="导入项目 Bundle",
+                question="是否同时导入内部子代理会话？通常不需要，它们会占满 Resume 列表",
+                yes_label="y",
+                no_label="n",
+                default_yes=False,
+            )
+        args = build_bundle_import_cli_args(
+            selection,
+            create_missing_workspace=create_missing_workspace,
+            include_subagents=include_subagents,
+        )
         action_name = f"导入 {selection.machine_label}/{selection.export_group_label}（{len(selection.entries)} 个 Bundle）"
         if selection.project_label:
             action_name = (
@@ -417,6 +433,8 @@ def resolve_menu_action_request(app: "ToolkitTuiApp", menu_action: "TuiMenuActio
         action_name += "（显示到 Desktop）"
         if create_missing_workspace:
             action_name += "（自动创建目录）"
+        if include_subagents:
+            action_name += "（包含子代理）"
         return action_name, args
 
     return action_name, cli_args

@@ -118,6 +118,7 @@ def create_parser() -> argparse.ArgumentParser:
     import_parser.add_argument("--export-group", default="", help="Only search bundles from this export folder (desktop/active/cli/project/single)")
     import_parser.add_argument("--project", default="", help="Project folder key for project bundle imports")
     import_parser.add_argument("--target-project-path", default="", help="Remap imported project cwd values to this local project path")
+    import_parser.add_argument("--include-subagents", action="store_true", help="Include internal subagent sessions in project imports")
     _add_skills_mode(import_parser, action="import")
 
     import_all_parser = subparsers.add_parser("import-desktop-all", help=command_help("import-desktop-all"))
@@ -128,6 +129,7 @@ def create_parser() -> argparse.ArgumentParser:
     import_all_parser.add_argument("--project", default="", help="Only import one project folder under project exports")
     import_all_parser.add_argument("--target-project-path", default="", help="Remap imported project cwd values to this local project path")
     import_all_parser.add_argument("--latest-only", action="store_true", help="Only import the latest bundle per machine and session id")
+    import_all_parser.add_argument("--include-subagents", action="store_true", help="Include internal subagent sessions in project imports")
     _add_skills_mode(import_all_parser, action="import")
 
     list_skills_parser = subparsers.add_parser("list-skills", help=command_help("list-skills"))

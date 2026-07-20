@@ -593,6 +593,9 @@ def print_batch_import_result(result: BatchImportResult) -> int:
     if result.target_project_path:
         print(f"Target project path: {result.target_project_path}")
     print(f"History view: {'仅最新' if result.latest_only else '全部历史'}")
+    if result.export_group_filter == "project":
+        print(f"Subagent sessions: {'included' if result.include_subagents else 'skipped by default'}")
+        print(f"Subagent bundles skipped: {result.skipped_subagent_count}")
     print(f"Bundle directories found: {len(result.bundle_dirs)}")
     print(f"Imported bundle directories: {len(result.success_dirs)}")
     print(f"Desktop sidebar threads promoted: {result.desktop_sidebar_promoted_count}")

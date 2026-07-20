@@ -13,6 +13,7 @@ from ..models import BundleSummary
 from ..paths import CodexPaths
 from ..stores.bundle_layout import LEGACY_MACHINE_KEY, bundle_export_group_label
 from ..stores.bundle_scanner import (
+    bundle_contains_subagent_session,
     collect_bundle_summaries,
     collect_known_bundle_summaries,
     latest_distinct_bundle_summaries,
@@ -37,6 +38,8 @@ class BatchImportPlan:
     export_group_filter: str
     export_group_label: str
     latest_only: bool
+    include_subagents: bool
+    skipped_subagent_count: int
     project_filter: str
     project_label: str
     project_source_path: str
@@ -66,6 +69,7 @@ def build_batch_import_plan(
     project_filter: str,
     target_project_path: str,
     latest_only: bool,
+    include_subagents: bool,
     skills_mode: str,
 ) -> BatchImportPlan:
     default_bundle_root = normalize_bundle_root(paths, None, paths.default_desktop_bundle_root)
@@ -93,6 +97,11 @@ def build_batch_import_plan(
             for summary in bundle_summaries
             if summary.project_key == normalized_project_filter
         ]
+    bundle_summaries, skipped_subagent_count = _filter_project_subagents(
+        bundle_summaries,
+        export_group_filter=resolved_export_group_filter,
+        include_subagents=include_subagents,
+    )
     if latest_only:
         bundle_summaries = latest_distinct_bundle_summaries(bundle_summaries)
 
@@ -104,6 +113,8 @@ def build_batch_import_plan(
         export_group_filter=resolved_export_group_filter,
         export_group_label=bundle_export_group_label(resolved_export_group_filter) if resolved_export_group_filter else "",
         latest_only=latest_only,
+        include_subagents=include_subagents,
+        skipped_subagent_count=skipped_subagent_count,
         project_filter=normalized_project_filter,
         project_label=_project_label_for_filter(bundle_summaries, normalized_project_filter),
         project_source_path=_project_source_path_for_filter(bundle_summaries, normalized_project_filter),
@@ -127,6 +138,7 @@ def build_selected_import_plan(
     project_filter: str,
     target_project_path: str,
     latest_only: bool,
+    include_subagents: bool,
     skills_mode: str,
 ) -> BatchImportPlan:
     if not input_values:
@@ -183,6 +195,11 @@ def build_selected_import_plan(
         selected_summaries.append(summary)
         seen_dirs.add(dir_key)
 
+    selected_summaries, skipped_subagent_count = _filter_project_subagents(
+        selected_summaries,
+        export_group_filter=resolved_export_group_filter,
+        include_subagents=include_subagents,
+    )
     if latest_only:
         selected_summaries = latest_distinct_bundle_summaries(selected_summaries)
 
@@ -194,6 +211,8 @@ def build_selected_import_plan(
         export_group_filter=resolved_export_group_filter,
         export_group_label=bundle_export_group_label(resolved_export_group_filter) if resolved_export_group_filter else "",
         latest_only=latest_only,
+        include_subagents=include_subagents,
+        skipped_subagent_count=skipped_subagent_count,
         project_filter=normalized_project_filter,
         project_label=_project_label_for_filter(selected_summaries, normalized_project_filter),
         project_source_path=_project_source_path_for_filter(selected_summaries, normalized_project_filter),
@@ -216,6 +235,23 @@ def _validate_batch_bundle_root(paths: CodexPaths, bundle_root: Path, default_bu
     )
     if bundle_root != default_bundle_root or not any(Path(root).expanduser().is_dir() for root in legacy_roots):
         raise ToolkitError(f"Missing bundle root: {bundle_root}")
+
+
+def _filter_project_subagents(
+    bundle_summaries: list[BundleSummary],
+    *,
+    export_group_filter: str,
+    include_subagents: bool,
+) -> tuple[list[BundleSummary], int]:
+    if include_subagents or export_group_filter != "project":
+        return bundle_summaries, 0
+
+    selected = [
+        summary
+        for summary in bundle_summaries
+        if not bundle_contains_subagent_session(summary)
+    ]
+    return selected, len(bundle_summaries) - len(selected)
 
 
 def _resolve_export_group_filter(

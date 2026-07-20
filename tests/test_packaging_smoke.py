@@ -421,6 +421,9 @@ class PackagingSmokeTests(unittest.TestCase):
                 )
 
             def _confirm_toggle(self, **kwargs):
+                if "子代理" in kwargs["question"]:
+                    test_case.assertFalse(kwargs["default_yes"])
+                    return False
                 test_case.assertTrue(kwargs["default_yes"])
                 test_case.assertIn("目标项目路径不存在", kwargs["question"])
                 return True
@@ -1069,6 +1072,7 @@ class PackagingSmokeTests(unittest.TestCase):
             "demo-project",
             "--target-project-path",
             "/tmp/demo-project",
+            "--include-subagents",
             "/tmp/bundle-a",
             "/tmp/bundle-b",
         ])
@@ -1077,6 +1081,7 @@ class PackagingSmokeTests(unittest.TestCase):
         self.assertTrue(parsed.desktop_visible)
         self.assertEqual(parsed.project, "demo-project")
         self.assertEqual(parsed.target_project_path, "/tmp/demo-project")
+        self.assertTrue(parsed.include_subagents)
 
     def test_delete_sessions_parser_accepts_ids_and_paths(self) -> None:
         parser = build_command_parser()

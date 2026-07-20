@@ -431,6 +431,8 @@ class BatchImportResult:
     export_group_filter: str = ""
     export_group_label: str = ""
     latest_only: bool = False
+    include_subagents: bool = False
+    skipped_subagent_count: int = 0
     project_filter: str = ""
     project_label: str = ""
     project_source_path: str = ""

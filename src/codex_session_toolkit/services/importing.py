@@ -410,6 +410,7 @@ def import_desktop_all(
     project_filter: str = "",
     target_project_path: str = "",
     latest_only: bool = False,
+    include_subagents: bool = False,
     desktop_visible: bool = False,
     create_missing_workspace: Optional[bool] = None,
     skills_mode: str = "best-effort",
@@ -422,6 +423,7 @@ def import_desktop_all(
         project_filter=project_filter,
         target_project_path=target_project_path,
         latest_only=latest_only,
+        include_subagents=include_subagents,
         skills_mode=skills_mode,
     )
     return _execute_batch_import_plan(
@@ -444,6 +446,7 @@ def import_selected_bundles(
     project_filter: str = "",
     target_project_path: str = "",
     latest_only: bool = False,
+    include_subagents: bool = False,
     desktop_visible: bool = False,
     create_missing_workspace: Optional[bool] = None,
     skills_mode: str = "best-effort",
@@ -458,6 +461,7 @@ def import_selected_bundles(
         project_filter=project_filter,
         target_project_path=target_project_path,
         latest_only=latest_only,
+        include_subagents=include_subagents,
         skills_mode=skills_mode,
     )
     return _execute_batch_import_plan(
@@ -563,6 +567,8 @@ def _execute_batch_import_plan(
         export_group_filter=plan.export_group_filter,
         export_group_label=plan.export_group_label,
         latest_only=plan.latest_only,
+        include_subagents=plan.include_subagents,
+        skipped_subagent_count=plan.skipped_subagent_count,
         project_filter=plan.project_filter,
         project_label=plan.project_label,
         project_source_path=plan.project_source_path,

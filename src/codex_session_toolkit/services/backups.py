@@ -5,18 +5,20 @@ from __future__ import annotations
 import re
 import shutil
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from ..errors import ToolkitError
-from ..models import SessionBackupDeleteResult, SessionBackupRestoreResult, SessionBackupSummary
+from ..models import (
+    SessionBackupDeleteResult,
+    SessionBackupRestoreResult,
+    SessionBackupSummary,
+)
 from ..paths import CodexPaths
 from ..stores.session_files import build_session_preview, session_id_from_filename
 from ..stores.session_parser import parse_session_summary_file
 from ..support import ensure_path_within_dir
 from ..validation import validate_jsonl_file, validate_session_id
-
 
 BACKUP_NAME_RE = re.compile(r"^(rollout-.+\.jsonl)\.bak(?:\.(restore))?\.(\d+)$")
 
@@ -25,7 +27,7 @@ def list_session_backups(
     paths: CodexPaths,
     *,
     pattern: str = "",
-    limit: Optional[int] = None,
+    limit: int | None = None,
 ) -> list[SessionBackupSummary]:
     backups: list[SessionBackupSummary] = []
     for backup_path in _iter_session_backup_files(paths):
@@ -80,7 +82,7 @@ def restore_session_backup(
         )
 
     summary.target_path.parent.mkdir(parents=True, exist_ok=True)
-    current_backup_path: Optional[Path] = None
+    current_backup_path: Path | None = None
     if summary.target_path.exists():
         current_backup_path = _next_restore_backup_path(summary.target_path)
         shutil.copy2(summary.target_path, current_backup_path)
@@ -152,7 +154,7 @@ def _iter_session_backup_files(paths: CodexPaths) -> list[Path]:
     return backup_files
 
 
-def _summarize_backup(paths: CodexPaths, backup_path: Path) -> Optional[SessionBackupSummary]:
+def _summarize_backup(paths: CodexPaths, backup_path: Path) -> SessionBackupSummary | None:
     backup_path = Path(backup_path).expanduser()
     backup_root = _backup_root_for_path(paths, backup_path)
     if backup_root is None:
@@ -173,7 +175,7 @@ def _summarize_backup(paths: CodexPaths, backup_path: Path) -> Optional[SessionB
 
     backup_epoch = int(epoch_text)
     backup_kind = "restore-safety" if restore_marker else "import-overwrite"
-    backup_time_label = datetime.fromtimestamp(backup_epoch).strftime("%Y-%m-%d %H:%M:%S")
+    backup_time_label = datetime.fromtimestamp(backup_epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     scope = "archived" if backup_root == paths.archived_sessions_dir else "active"
     size_bytes = backup_path.stat().st_size if backup_path.exists() else 0
 
@@ -207,7 +209,7 @@ def _summarize_backup(paths: CodexPaths, backup_path: Path) -> Optional[SessionB
     )
 
 
-def _backup_root_for_path(paths: CodexPaths, backup_path: Path) -> Optional[Path]:
+def _backup_root_for_path(paths: CodexPaths, backup_path: Path) -> Path | None:
     for root in (paths.sessions_dir, paths.archived_sessions_dir):
         try:
             ensure_path_within_dir(backup_path, root, "Session backup")

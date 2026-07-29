@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -78,7 +77,7 @@ class SkillBundleSummary:
     export_group: str = ""
     skill_count: int = 0
     bundled_skill_count: int = 0
-    skills: Tuple[str, ...] = ()
+    skills: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -94,16 +93,16 @@ class BundleValidationResult:
 class CloneFileResult:
     action: str
     message: str
-    new_file_path: Optional[Path] = None
+    new_file_path: Path | None = None
 
 
 @dataclass(frozen=True)
 class CloneRunResult:
     provider: str
     dry_run: bool
-    stats: Dict[str, int]
-    messages: List[str] = field(default_factory=list)
-    errors: List[str] = field(default_factory=list)
+    stats: dict[str, int]
+    messages: list[str] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -111,9 +110,9 @@ class CleanupResult:
     provider: str
     dry_run: bool
     files_checked: int
-    files_to_delete: List[Path]
-    deleted: List[Path] = field(default_factory=list)
-    errors: List[Tuple[Path, str]] = field(default_factory=list)
+    files_to_delete: list[Path]
+    deleted: list[Path] = field(default_factory=list)
+    errors: list[tuple[Path, str]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -133,12 +132,12 @@ class MigratedOriginalSessionSummary:
 class MigratedOriginalSessionDeleteResult:
     provider: str
     dry_run: bool
-    candidates: List[MigratedOriginalSessionSummary]
-    deleted_files: List[Path] = field(default_factory=list)
-    session_ids: List[str] = field(default_factory=list)
+    candidates: list[MigratedOriginalSessionSummary]
+    deleted_files: list[Path] = field(default_factory=list)
+    session_ids: list[str] = field(default_factory=list)
     index_entries_removed: int = 0
     thread_rows_removed: int = 0
-    errors: List[Tuple[Path, str]] = field(default_factory=list)
+    errors: list[tuple[Path, str]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -156,14 +155,14 @@ class OperationWarning:
 @dataclass(frozen=True)
 class ValidationReport:
     source_group: str
-    results: List[BundleValidationResult]
+    results: list[BundleValidationResult]
 
     @property
-    def valid_results(self) -> List[BundleValidationResult]:
+    def valid_results(self) -> list[BundleValidationResult]:
         return [result for result in self.results if result.is_valid]
 
     @property
-    def invalid_results(self) -> List[BundleValidationResult]:
+    def invalid_results(self) -> list[BundleValidationResult]:
         return [result for result in self.results if not result.is_valid]
 
 
@@ -178,8 +177,8 @@ class ExportResult:
     source_machine_key: str = ""
     skills_bundled_count: int = 0
     skills_available_count: int = 0
-    skills_manifest_path: Optional[Path] = None
-    warnings: List[OperationWarning] = field(default_factory=list)
+    skills_manifest_path: Path | None = None
+    warnings: list[OperationWarning] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -189,8 +188,8 @@ class SkillExportResult:
     source_machine_key: str
     exported_count: int
     skipped_count: int = 0
-    manifest_file: Optional[Path] = None
-    warnings: List[OperationWarning] = field(default_factory=list)
+    manifest_file: Path | None = None
+    warnings: list[OperationWarning] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -201,7 +200,7 @@ class SkillImportResult:
     conflict_skipped_count: int = 0
     missing_count: int = 0
     failed_count: int = 0
-    warnings: List[OperationWarning] = field(default_factory=list)
+    warnings: list[OperationWarning] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -223,7 +222,7 @@ class GitHubConnectResult:
     dry_run: bool
     initialized_repo: bool = False
     configured_remote: bool = False
-    commands: List[str] = field(default_factory=list)
+    commands: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -237,10 +236,10 @@ class GitHubSyncStatus:
     is_connected: bool = False
     uses_project_source_remote: bool = False
     project_remote_url: str = ""
-    changed_files: List[str] = field(default_factory=list)
-    session_changed_files: List[str] = field(default_factory=list)
-    skill_changed_files: List[str] = field(default_factory=list)
-    other_changed_files: List[str] = field(default_factory=list)
+    changed_files: list[str] = field(default_factory=list)
+    session_changed_files: list[str] = field(default_factory=list)
+    skill_changed_files: list[str] = field(default_factory=list)
+    other_changed_files: list[str] = field(default_factory=list)
     has_head_commit: bool = False
     local_commit_hash: str = ""
     local_updated_at: str = ""
@@ -267,7 +266,7 @@ class GitHubProxyResult:
     configured_proxy: bool = False
     cleared_proxy: bool = False
     ssh_proxy_command: str = ""
-    commands: List[str] = field(default_factory=list)
+    commands: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -280,20 +279,20 @@ class GitHubSyncResult:
     push_enabled: bool
     initialized_repo: bool = False
     configured_remote: bool = False
-    changed_files: List[str] = field(default_factory=list)
-    session_changed_files: List[str] = field(default_factory=list)
-    skill_changed_files: List[str] = field(default_factory=list)
-    other_changed_files: List[str] = field(default_factory=list)
+    changed_files: list[str] = field(default_factory=list)
+    session_changed_files: list[str] = field(default_factory=list)
+    skill_changed_files: list[str] = field(default_factory=list)
+    other_changed_files: list[str] = field(default_factory=list)
     committed: bool = False
     commit_hash: str = ""
     remote_checked: bool = False
     pulled: bool = False
     merged_remote: bool = False
     conflict: bool = False
-    conflict_files: List[str] = field(default_factory=list)
+    conflict_files: list[str] = field(default_factory=list)
     pushed: bool = False
     skipped_reason: str = ""
-    commands: List[str] = field(default_factory=list)
+    commands: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -303,10 +302,10 @@ class GitHubPullResult:
     remote_url: str
     branch: str
     dry_run: bool
-    changed_files: List[str] = field(default_factory=list)
-    session_changed_files: List[str] = field(default_factory=list)
-    skill_changed_files: List[str] = field(default_factory=list)
-    other_changed_files: List[str] = field(default_factory=list)
+    changed_files: list[str] = field(default_factory=list)
+    session_changed_files: list[str] = field(default_factory=list)
+    skill_changed_files: list[str] = field(default_factory=list)
+    other_changed_files: list[str] = field(default_factory=list)
     local_commit_hash: str = ""
     local_updated_at: str = ""
     remote_commit_hash: str = ""
@@ -318,9 +317,9 @@ class GitHubPullResult:
     pulled: bool = False
     merged_remote: bool = False
     conflict: bool = False
-    conflict_files: List[str] = field(default_factory=list)
+    conflict_files: list[str] = field(default_factory=list)
     skipped_reason: str = ""
-    commands: List[str] = field(default_factory=list)
+    commands: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -330,7 +329,7 @@ class SessionBackupRestoreResult:
     target_path: Path
     dry_run: bool
     restored: bool = False
-    current_backup_path: Optional[Path] = None
+    current_backup_path: Path | None = None
 
 
 @dataclass(frozen=True)
@@ -346,29 +345,29 @@ class SessionBackupDeleteResult:
 class ArchivedSessionDeleteResult:
     archive_root: Path
     dry_run: bool
-    files_to_delete: List[Path]
-    deleted_files: List[Path] = field(default_factory=list)
-    session_ids: List[str] = field(default_factory=list)
+    files_to_delete: list[Path]
+    deleted_files: list[Path] = field(default_factory=list)
+    session_ids: list[str] = field(default_factory=list)
     bytes_to_delete: int = 0
     index_entries_removed: int = 0
     thread_rows_removed: int = 0
     thread_rows_restored: int = 0
     empty_dirs_removed: int = 0
-    errors: List[Tuple[Path, str]] = field(default_factory=list)
+    errors: list[tuple[Path, str]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
 class SessionDeleteResult:
     dry_run: bool
-    files_to_delete: List[Path]
-    deleted_files: List[Path] = field(default_factory=list)
-    session_ids: List[str] = field(default_factory=list)
+    files_to_delete: list[Path]
+    deleted_files: list[Path] = field(default_factory=list)
+    session_ids: list[str] = field(default_factory=list)
     bytes_to_delete: int = 0
     index_entries_removed: int = 0
     thread_rows_removed: int = 0
     thread_rows_restored: int = 0
     empty_dirs_removed: int = 0
-    errors: List[Tuple[Path, str]] = field(default_factory=list)
+    errors: list[tuple[Path, str]] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -382,15 +381,15 @@ class BatchExportResult:
     dry_run: bool
     active_only: bool
     session_kind: str
-    session_ids: List[str]
-    success_ids: List[str]
-    failed_exports: List[Tuple[str, str]]
-    manifest_file: Optional[Path] = None
+    session_ids: list[str]
+    success_ids: list[str]
+    failed_exports: list[tuple[str, str]]
+    manifest_file: Path | None = None
     selection_label: str = ""
     selection_path: str = ""
     export_group: str = ""
     total_skills_bundled: int = 0
-    warnings: List[OperationWarning] = field(default_factory=list)
+    warnings: list[OperationWarning] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -408,8 +407,8 @@ class ImportResult:
     target_desktop_model_provider: str
     resolved_from_session_id: bool = False
     created_workspace_dir: bool = False
-    backup_path: Optional[Path] = None
-    warnings: List[OperationWarning] = field(default_factory=list)
+    backup_path: Path | None = None
+    warnings: list[OperationWarning] = field(default_factory=list)
     skills_restored_count: int = 0
     skills_already_present_count: int = 0
     skills_conflict_skipped_count: int = 0
@@ -423,9 +422,9 @@ class ImportResult:
 class BatchImportResult:
     bundle_root: Path
     desktop_visible: bool
-    bundle_dirs: List[Path]
-    success_dirs: List[Path]
-    failed_imports: List[Tuple[Path, str]]
+    bundle_dirs: list[Path]
+    success_dirs: list[Path]
+    failed_imports: list[tuple[Path, str]]
     machine_filter: str = ""
     machine_label: str = ""
     export_group_filter: str = ""
@@ -442,10 +441,10 @@ class BatchImportResult:
     total_skills_conflict_skipped: int = 0
     total_skills_missing: int = 0
     total_skills_failed: int = 0
-    skills_restore_report_path: Optional[Path] = None
+    skills_restore_report_path: Path | None = None
     desktop_sidebar_promoted_count: int = 0
     desktop_pinned_count: int = 0
-    warnings: List[OperationWarning] = field(default_factory=list)
+    warnings: list[OperationWarning] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -466,13 +465,13 @@ class RepairResult:
     entries_scanned: int
     desktop_retagged: int
     cli_converted: int
-    skipped_sessions: List[str]
+    skipped_sessions: list[str]
     workspace_roots_count: int
     threads_updated: int
     threads_pruned: int
     thread_sources_repaired: int
     desktop_sidebar_promoted_count: int
     desktop_pinned_count: int
-    backup_root: Optional[Path]
-    changed_sessions: List[str]
-    warnings: List[OperationWarning]
+    backup_root: Path | None
+    changed_sessions: list[str]
+    warnings: list[OperationWarning]

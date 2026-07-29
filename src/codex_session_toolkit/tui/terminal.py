@@ -12,11 +12,14 @@ import re
 import shutil
 import sys
 import unicodedata
-from typing import List, Optional, Tuple
 
 from .terminal_io import (
     configure_text_streams as _configure_text_streams,
+)
+from .terminal_io import (
     is_interactive_terminal as _is_interactive_terminal,
+)
+from .terminal_io import (
     read_key as _read_key,
 )
 
@@ -44,9 +47,7 @@ def supports_color() -> bool:
     if not hasattr(sys.stdout, "isatty") or not sys.stdout.isatty():
         return False
     term = os.environ.get("TERM", "")
-    if term.lower() == "dumb":
-        return False
-    return True
+    return term.lower() != "dumb"
 
 
 COLOR_ENABLED = supports_color()
@@ -201,7 +202,7 @@ def clear_screen() -> None:
     command = "cls" if os.name == "nt" else "clear"
     try:
         os.system(command)
-    except Exception:
+    except OSError:
         pass
 
 
@@ -310,7 +311,7 @@ def glyphs() -> dict:
     try:
         ("".join(UNICODE_GLYPHS.values())).encode(encoding)
         return UNICODE_GLYPHS
-    except Exception:
+    except (LookupError, UnicodeError):
         return ASCII_GLYPHS
 
 
@@ -334,10 +335,10 @@ def term_width(fallback: int = 90) -> int:
         if getattr(sys.stdout, "isatty", lambda: False)():
             try:
                 return os.get_terminal_size(sys.stdout.fileno()).columns
-            except Exception:
+            except OSError:
                 pass
         return shutil.get_terminal_size(fallback=(fallback, 24)).columns
-    except Exception:
+    except OSError:
         return fallback
 
 
@@ -346,14 +347,14 @@ def term_height(fallback: int = 24) -> int:
         if getattr(sys.stdout, "isatty", lambda: False)():
             try:
                 return os.get_terminal_size(sys.stdout.fileno()).lines
-            except Exception:
+            except OSError:
                 pass
         return shutil.get_terminal_size(fallback=(90, fallback)).lines
-    except Exception:
+    except OSError:
         return fallback
 
 
-def tui_width(cols: Optional[int] = None, *, fallback: int = 90) -> int:
+def tui_width(cols: int | None = None, *, fallback: int = 90) -> int:
     cols = term_width(fallback=fallback) if cols is None else int(cols)
     if cols <= 0:
         cols = fallback
@@ -368,7 +369,7 @@ def tui_width(cols: Optional[int] = None, *, fallback: int = 90) -> int:
             cap_n = int(cap)
             if cap_n > 0:
                 width = min(width, max(24, cap_n))
-        except Exception:
+        except ValueError:
             pass
 
     return max(20, width)
@@ -379,7 +380,7 @@ def _can_encode(text: str) -> bool:
     try:
         text.encode(encoding)
         return True
-    except Exception:
+    except (LookupError, UnicodeError):
         return False
 
 
@@ -390,7 +391,7 @@ def _render_logo_text(
     fill: str,
     char_gap: int,
     word_gap: int,
-) -> List[str]:
+) -> list[str]:
     patterns = list(font.values())
     height = len(patterns[0]) if patterns else 0
     fallback_width = max((len(row) for pattern in patterns for row in pattern), default=4)
@@ -414,13 +415,13 @@ def _render_logo_text(
 
 
 def _apply_logo_shadow(
-    lines: List[str],
+    lines: list[str],
     *,
     fill: str,
     shadow: str,
     extend_width: bool,
     extend_height: bool,
-) -> List[str]:
+) -> list[str]:
     if not lines or not shadow or shadow == " ":
         return lines
 
@@ -465,20 +466,20 @@ def _apply_logo_shadow(
 
 
 def _style_logo_chars(
-    lines: List[str],
+    lines: list[str],
     *,
     fill: str,
     shadow: str,
-    fill_codes: Tuple[str, ...] = (Ansi.BOLD, Ansi.BRIGHT_CYAN),
-    shadow_codes: Tuple[str, ...] = (Ansi.DIM, Ansi.BRIGHT_BLUE),
-) -> List[str]:
+    fill_codes: tuple[str, ...] = (Ansi.BOLD, Ansi.BRIGHT_CYAN),
+    shadow_codes: tuple[str, ...] = (Ansi.DIM, Ansi.BRIGHT_BLUE),
+) -> list[str]:
     if not COLOR_ENABLED:
         return lines
 
     shadow_token = style_text(shadow, *shadow_codes) if shadow and shadow != " " and shadow_codes else None
     fill_token = style_text(fill, *fill_codes) if fill_codes else fill
 
-    out: List[str] = []
+    out: list[str] = []
     for line in lines:
         processed = line
         if shadow_token:
@@ -488,7 +489,7 @@ def _style_logo_chars(
     return out
 
 
-def _hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
+def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     hex_color = hex_color.lstrip("#")
     return tuple(int(hex_color[i:i + 2], 16) for i in (0, 2, 4))
 
@@ -503,10 +504,10 @@ def _render_wordmark(
     char_gap: int,
     word_gap: int,
     shadow_ok: bool,
-    fill_codes: Tuple[str, ...] = (Ansi.BOLD, Ansi.BRIGHT_CYAN),
-    shadow_codes: Tuple[str, ...] = (Ansi.DIM, Ansi.BRIGHT_BLUE),
-    gradient: Optional[Tuple[str, str]] = None,
-) -> List[str]:
+    fill_codes: tuple[str, ...] = (Ansi.BOLD, Ansi.BRIGHT_CYAN),
+    shadow_codes: tuple[str, ...] = (Ansi.DIM, Ansi.BRIGHT_BLUE),
+    gradient: tuple[str, str] | None = None,
+) -> list[str]:
     base = _render_logo_text(
         text,
         font=font,
@@ -558,7 +559,7 @@ def _render_wordmark(
     )
 
 
-def app_logo_lines(max_width: Optional[int] = None) -> List[str]:
+def app_logo_lines(max_width: int | None = None) -> list[str]:
     max_width = term_width() if max_width is None else max(20, int(max_width))
 
     ascii_ui = bool(_env_first("CST_ASCII_UI", "CSC_ASCII_UI"))
@@ -568,16 +569,16 @@ def app_logo_lines(max_width: Optional[int] = None) -> List[str]:
     fill = "#" if ascii_ui else "█"
     shadow = "." if ascii_ui else ("░" if _can_encode("░") else " ")
 
-    def _normalize_logo_block(lines: List[str]) -> List[str]:
+    def _normalize_logo_block(lines: list[str]) -> list[str]:
         if not lines:
             return lines
         block_width = max((display_width(line) for line in lines), default=0)
         return [pad_right(line, block_width) for line in lines]
 
-    def _max_w(lines: List[str]) -> int:
+    def _max_w(lines: list[str]) -> int:
         return max((display_width(line) for line in lines), default=0)
 
-    def _merge_horiz(left: List[str], right: List[str], *, gap: int) -> List[str]:
+    def _merge_horiz(left: list[str], right: list[str], *, gap: int) -> list[str]:
         left = _normalize_logo_block(left)
         right = _normalize_logo_block(right)
         lw = _max_w(left)
@@ -591,7 +592,7 @@ def app_logo_lines(max_width: Optional[int] = None) -> List[str]:
     def _ideal_part_gap(*, min_gap: int) -> int:
         return max(min_gap, min(18, max_width // 20))
 
-    def _render_parts(font: dict, *, char_gap: int) -> Tuple[List[str], List[str], List[str]]:
+    def _render_parts(font: dict, *, char_gap: int) -> tuple[list[str], list[str], list[str]]:
         return (
             _render_wordmark(
                 "CODEX",
@@ -634,7 +635,7 @@ def app_logo_lines(max_width: Optional[int] = None) -> List[str]:
             ),
         )
 
-    def _try_triple_line(font: dict, *, char_gap: int, min_gap: int) -> Optional[List[str]]:
+    def _try_triple_line(font: dict, *, char_gap: int, min_gap: int) -> list[str] | None:
         codex, session, toolkit = _render_parts(font, char_gap=char_gap)
         base_sum = _max_w(codex) + _max_w(session) + _max_w(toolkit)
         max_gap = (max_width - base_sum) // 2
@@ -646,7 +647,7 @@ def app_logo_lines(max_width: Optional[int] = None) -> List[str]:
             return _normalize_logo_block(line)
         return None
 
-    def _try_stacked(font: dict, *, char_gap: int, min_gap: int) -> Optional[List[str]]:
+    def _try_stacked(font: dict, *, char_gap: int, min_gap: int) -> list[str] | None:
         codex, session, toolkit = _render_parts(font, char_gap=char_gap)
 
         bottom_base = _max_w(session) + _max_w(toolkit)
@@ -736,11 +737,11 @@ def _box_chars() -> dict:
     try:
         ("".join(UNICODE_BOX_CHARS.values())).encode(encoding)
         return UNICODE_BOX_CHARS
-    except Exception:
+    except (LookupError, UnicodeError):
         return ASCII_BOX_CHARS
 
 
-def render_box(lines, width: Optional[int] = None, border_codes: Optional[Tuple[str, ...]] = None) -> List[str]:
+def render_box(lines, width: int | None = None, border_codes: tuple[str, ...] | None = None) -> list[str]:
     cols = term_width()
     if width is None:
         width = min(cols, 90)
@@ -776,5 +777,5 @@ def configure_text_streams() -> None:
     _configure_text_streams()
 
 
-def read_key(timeout_ms: Optional[int] = None) -> Optional[str]:
+def read_key(timeout_ms: int | None = None) -> str | None:
     return _read_key(timeout_ms=timeout_ms)

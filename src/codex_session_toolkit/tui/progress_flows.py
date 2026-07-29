@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from queue import Queue
-from typing import TYPE_CHECKING, Callable, Generic, List, Optional, TypeVar
+from typing import TYPE_CHECKING, Callable, Generic, TypeVar
 
 from .terminal import Ansi, align_line, app_logo_lines, render_box, style_text
 
@@ -29,15 +29,15 @@ class ProgressSubprocessResult:
 
 @dataclass(frozen=True)
 class _ThreadResult(Generic[T]):
-    value: Optional[T] = None
-    error: Optional[BaseException] = None
+    value: T | None = None
+    error: BaseException | None = None
 
 
 def run_callable_with_progress(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
-    detail_lines: List[str],
+    detail_lines: list[str],
     task: Callable[[], T],
 ) -> T:
     queue: Queue[_ThreadResult[T]] = Queue(maxsize=1)
@@ -45,7 +45,7 @@ def run_callable_with_progress(
     def worker() -> None:
         try:
             queue.put(_ThreadResult(value=task()))
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: BLE001
             queue.put(_ThreadResult(error=exc))
 
     thread = threading.Thread(target=worker, daemon=True)
@@ -66,11 +66,11 @@ def run_callable_with_progress(
 
 
 def run_cli_args_with_progress(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
-    detail_lines: List[str],
-    cli_args: List[str],
+    detail_lines: list[str],
+    cli_args: list[str],
 ) -> ProgressSubprocessResult:
     command = [sys.executable, "-m", "codex_session_toolkit", *cli_args]
     env = os.environ.copy()
@@ -111,10 +111,10 @@ def run_cli_args_with_progress(
 
 
 def _render_progress(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
-    detail_lines: List[str],
+    detail_lines: list[str],
     started_at: float,
     tick: int,
 ) -> None:
@@ -139,8 +139,7 @@ def _render_progress(
     output_lines.append(align_line(style_text("Codex 会话工具箱", Ansi.BOLD, Ansi.CYAN), box_width, center=center))
     output_lines.append(align_line(style_text(title, Ansi.DIM), box_width, center=center))
     output_lines.append("")
-    for line in render_box(lines, width=box_width, border_codes=(Ansi.DIM, Ansi.YELLOW)):
-        output_lines.append(line)
+    output_lines.extend(render_box(lines, width=box_width, border_codes=(Ansi.DIM, Ansi.YELLOW)))
 
     hide_cursor = "\033[?25l"
     show_cursor = "\033[?25h"

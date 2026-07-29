@@ -4,10 +4,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib import import_module
-from typing import List, Tuple
+from typing import TYPE_CHECKING
 
 from .. import APP_COMMAND
 from ..models import BundleSummary
+
+if TYPE_CHECKING:
+    from .menu_catalog import (
+        SECTION_NOTES,
+        TUI_ACTION_NOTES,
+        build_tui_menu_actions,
+        build_tui_menu_sections,
+        tui_action_section,
+    )
 
 
 @dataclass(frozen=True)
@@ -26,7 +35,7 @@ class TuiMenuAction:
     hotkey: str
     label: str
     section_id: str
-    cli_args: Tuple[str, ...]
+    cli_args: tuple[str, ...]
     is_dangerous: bool = False
     is_dry_run: bool = False
 
@@ -35,21 +44,21 @@ class TuiMenuAction:
 class TuiMenuSection:
     title: str
     section_id: str
-    border_codes: Tuple[str, ...]
+    border_codes: tuple[str, ...]
 
 
 @dataclass(frozen=True)
 class BundleBrowserSnapshot:
-    entries: List[BundleSummary]
-    machine_options: List[Tuple[str, str]]
-    export_group_options: List[Tuple[str, str]]
+    entries: list[BundleSummary]
+    machine_options: list[tuple[str, str]]
+    export_group_options: list[tuple[str, str]]
     current_machine_label: str
     current_export_group_label: str
 
 
 @dataclass(frozen=True)
 class BatchBundleImportSelection:
-    entries: List[BundleSummary]
+    entries: list[BundleSummary]
     machine_filter: str
     machine_label: str
     export_group_filter: str
@@ -66,7 +75,7 @@ class BundleMachineFolderOption:
     machine_key: str
     machine_label: str
     bundle_count: int
-    export_groups: Tuple[str, ...]
+    export_groups: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -74,7 +83,7 @@ class BundleCategoryFolderOption:
     export_group: str
     export_group_label: str
     bundle_count: int
-    entries: List[BundleSummary]
+    entries: list[BundleSummary]
 
 
 @dataclass(frozen=True)
@@ -83,7 +92,7 @@ class BundleProjectFolderOption:
     project_label: str
     project_path: str
     bundle_count: int
-    entries: List[BundleSummary]
+    entries: list[BundleSummary]
     local_status: str
     local_status_label: str
     local_target_path: str
@@ -98,6 +107,8 @@ _LEGACY_MENU_EXPORTS = {
 }
 
 __all__ = [
+    "SECTION_NOTES",
+    "TUI_ACTION_NOTES",
     "BatchBundleImportSelection",
     "BundleBrowserSnapshot",
     "BundleCategoryFolderOption",
@@ -106,7 +117,9 @@ __all__ = [
     "ToolkitAppContext",
     "TuiMenuAction",
     "TuiMenuSection",
-    *_LEGACY_MENU_EXPORTS,
+    "build_tui_menu_actions",
+    "build_tui_menu_sections",
+    "tui_action_section",
 ]
 
 

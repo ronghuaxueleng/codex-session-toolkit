@@ -6,9 +6,22 @@ import json
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
-from ..models import CleanupResult, CloneFileResult, CloneRunResult, MigratedOriginalSessionDeleteResult, MigratedOriginalSessionSummary
+from ..errors import ToolkitError
+from ..models import (
+    CleanupResult,
+    CloneFileResult,
+    CloneRunResult,
+    MigratedOriginalSessionDeleteResult,
+    MigratedOriginalSessionSummary,
+)
+
+
+def _try_read_session_payload(session_file: Path) -> dict | None:
+    try:
+        return read_session_payload(session_file)
+    except (OSError, UnicodeError, ToolkitError):
+        return None
 from ..paths import CodexPaths
 from ..services.provider import detect_provider
 from ..stores.desktop_state import delete_thread_rows_by_session_ids
@@ -40,9 +53,8 @@ def build_clone_index(
 
     for session_file in iter_session_files(paths, active_only=active_only):
         total_files += 1
-        try:
-            payload = read_session_payload(session_file)
-        except Exception:
+        payload = _try_read_session_payload(session_file)
+        if payload is None:
             continue
 
         if payload.get("model_provider") != provider:
@@ -63,7 +75,7 @@ def clone_session_file(
     session_file: Path,
     *,
     target_provider: str = "",
-    already_cloned_ids: Optional[set[str]] = None,
+    already_cloned_ids: set[str] | None = None,
     dry_run: bool = False,
 ) -> CloneFileResult:
     session_file = Path(session_file).expanduser()
@@ -73,7 +85,7 @@ def clone_session_file(
 
     try:
         records = parse_jsonl_records(session_file)
-    except Exception as exc:
+    except (OSError, UnicodeError, ToolkitError) as exc:
         return CloneFileResult("error", str(exc))
 
     if not records:
@@ -200,9 +212,8 @@ def cleanup_clones(
         if not timestamp:
             continue
 
-        try:
-            payload = read_session_payload(session_file)
-        except Exception:
+        payload = _try_read_session_payload(session_file)
+        if payload is None:
             continue
 
         current_provider = payload.get("model_provider", "")
@@ -225,7 +236,7 @@ def cleanup_clones(
             try:
                 target_path.unlink()
                 deleted.append(target_path)
-            except Exception as exc:
+            except OSError as exc:
                 errors.append((target_path, str(exc)))
 
     return CleanupResult(
@@ -249,9 +260,8 @@ def list_migrated_original_sessions(
     cloned_by_original_id: dict[str, tuple[Path, dict]] = {}
 
     for session_file in iter_session_files(paths, active_only=active_only):
-        try:
-            payload = read_session_payload(session_file)
-        except Exception:
+        payload = _try_read_session_payload(session_file)
+        if payload is None:
             continue
 
         session_id = payload.get("id") or session_id_from_filename(session_file)

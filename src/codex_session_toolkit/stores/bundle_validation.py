@@ -45,13 +45,13 @@ def validate_bundle_directory(
             is_valid=True,
             message="OK",
         )
-    except Exception as exc:
+    except (OSError, UnicodeError, ToolkitError) as exc:
         fallback_session_id = bundle_dir.name
         try:
             if manifest_file.is_file():
                 fallback_session_id = load_manifest(manifest_file).get("SESSION_ID", bundle_dir.name) or bundle_dir.name
-        except Exception:
-            pass
+        except (OSError, UnicodeError, ToolkitError):
+            fallback_session_id = bundle_dir.name
         return BundleValidationResult(
             source_group=source_group,
             bundle_dir=bundle_dir,

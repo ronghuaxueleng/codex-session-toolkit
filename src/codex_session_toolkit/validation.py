@@ -7,7 +7,7 @@ import re
 import shlex
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, Mapping
+from typing import Mapping
 
 from .errors import ToolkitError
 from .support import ensure_path_within_dir, extract_iso_timestamp
@@ -19,7 +19,7 @@ def validate_session_id(session_id: str) -> str:
     return session_id
 
 
-def load_manifest(manifest_file: Path) -> Dict[str, str]:
+def load_manifest(manifest_file: Path) -> dict[str, str]:
     allowed = {
         "SESSION_ID",
         "RELATIVE_PATH",
@@ -35,7 +35,7 @@ def load_manifest(manifest_file: Path) -> Dict[str, str]:
         "EXPORT_MACHINE_KEY",
         "HAS_SKILLS",
     }
-    values: Dict[str, str] = {}
+    values: dict[str, str] = {}
 
     with manifest_file.open("r", encoding="utf-8") as fh:
         for line_number, raw in enumerate(fh, 1):
@@ -134,7 +134,7 @@ def validate_relative_path(relative_path: str, session_id: str) -> str:
     if not normalized or normalized.startswith("/") or "\n" in normalized:
         raise ToolkitError(f"Unsafe relative path in manifest: {relative_path}")
 
-    if not (normalized.startswith("sessions/") or normalized.startswith("archived_sessions/")):
+    if not (normalized.startswith(("sessions/", "archived_sessions/"))):
         raise ToolkitError(f"Unexpected relative path in manifest: {relative_path}")
 
     path = Path(normalized)

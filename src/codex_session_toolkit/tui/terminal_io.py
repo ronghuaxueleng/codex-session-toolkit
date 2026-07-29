@@ -5,7 +5,6 @@ from __future__ import annotations
 import os
 import sys
 import time
-from typing import Optional
 
 
 def is_interactive_terminal() -> bool:
@@ -20,15 +19,15 @@ def configure_text_streams() -> None:
         if callable(reconfigure):
             try:
                 reconfigure(errors="replace")
-            except Exception:
+            except (OSError, ValueError):
                 pass
 
 
-def read_key(timeout_ms: Optional[int] = None) -> Optional[str]:
+def read_key(timeout_ms: int | None = None) -> str | None:
     if os.name == "nt":
         try:
             import msvcrt
-        except Exception:
+        except ImportError:
             return None
 
         if timeout_ms is not None:
@@ -61,13 +60,13 @@ def read_key(timeout_ms: Optional[int] = None) -> Optional[str]:
         import select
         import termios
         import tty
-    except Exception:
+    except ImportError:
         return None
 
     try:
         fd = sys.stdin.fileno()
         old = termios.tcgetattr(fd)
-    except Exception:
+    except OSError:
         return None
 
     try:
@@ -105,10 +104,10 @@ def read_key(timeout_ms: Optional[int] = None) -> Optional[str]:
             return "ESC"
         try:
             return ch.decode("utf-8")
-        except Exception:
+        except UnicodeDecodeError:
             return chr(ch[0])
     finally:
         try:
             termios.tcsetattr(fd, termios.TCSADRAIN, old)
-        except Exception:
+        except OSError:
             pass

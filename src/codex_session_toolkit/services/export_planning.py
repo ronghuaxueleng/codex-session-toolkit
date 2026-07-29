@@ -5,12 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from ..errors import ToolkitError
 from ..models import BatchExportResult, OperationWarning
 from ..paths import CodexPaths
-from ..stores.session_files import collect_session_ids_for_kind, collect_session_ids_for_project
+from ..stores.session_files import (
+    collect_session_ids_for_kind,
+    collect_session_ids_for_project,
+)
 from ..support import (
     build_batch_export_root,
     build_machine_bundle_root,
@@ -58,7 +60,7 @@ class BatchExportPlan:
         *,
         success_ids: list[str] | None = None,
         failed_exports: list[tuple[str, str]] | None = None,
-        manifest_file: Optional[Path] = None,
+        manifest_file: Path | None = None,
         total_skills_bundled: int = 0,
         warnings: list[OperationWarning] | None = None,
     ) -> BatchExportResult:
@@ -120,7 +122,7 @@ def build_project_export_plan(
     paths: CodexPaths,
     project_path: str,
     *,
-    bundle_root: Optional[Path],
+    bundle_root: Path | None,
     dry_run: bool,
     active_only: bool,
 ) -> BatchExportPlan:

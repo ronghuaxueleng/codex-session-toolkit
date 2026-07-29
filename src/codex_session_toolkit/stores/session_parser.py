@@ -6,7 +6,6 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from ..errors import ToolkitError
 from ..support import classify_session_kind
@@ -78,8 +77,8 @@ def explicit_thread_name_from_record(obj: dict) -> str:
     return ""
 
 
-def parse_jsonl_records(path: Path) -> List[Tuple[str, Optional[dict]]]:
-    records: List[Tuple[str, Optional[dict]]] = []
+def parse_jsonl_records(path: Path) -> list[tuple[str, dict | None]]:
+    records: list[tuple[str, dict | None]] = []
     try:
         with path.open("r", encoding="utf-8") as fh:
             for line_number, raw in enumerate(fh, 1):
@@ -102,7 +101,7 @@ def parse_jsonl_records(path: Path) -> List[Tuple[str, Optional[dict]]]:
 @dataclass(frozen=True)
 class ParsedSessionFile:
     path: Path
-    records: List[Tuple[str, Optional[dict]]]
+    records: list[tuple[str, dict | None]]
     session_meta: dict
     turn_context: dict
     last_timestamp: str

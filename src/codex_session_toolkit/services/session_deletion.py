@@ -7,7 +7,10 @@ from typing import Iterable
 
 from ..models import SessionDeleteResult
 from ..paths import CodexPaths
-from ..stores.desktop_state import delete_thread_rows_by_session_ids, redirect_thread_rows_by_session_paths
+from ..stores.desktop_state import (
+    delete_thread_rows_by_session_ids,
+    redirect_thread_rows_by_session_paths,
+)
 from ..stores.index import remove_session_index_entries
 from ..stores.session_files import session_id_from_filename
 

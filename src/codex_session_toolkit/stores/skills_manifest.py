@@ -5,10 +5,8 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
-from typing import Dict, List, Optional, Tuple
 
 from ..models import OperationWarning
-
 
 SKILLS_MANIFEST_FILENAME = "skills_manifest.json"
 SKILLS_DIR_NAME = "skills"
@@ -31,7 +29,7 @@ class SkillDescriptor:
     bundle_path: str = ""
     content_hash: str = ""
     dependency_level: str = "available"
-    evidence: Tuple[str, ...] = ()
+    evidence: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -40,7 +38,7 @@ class SkillsManifest:
     available_skill_count: int = 0
     used_skill_count: int = 0
     bundled_skill_count: int = 0
-    skills: Tuple[SkillDescriptor, ...] = ()
+    skills: tuple[SkillDescriptor, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -56,13 +54,13 @@ class SkillRestoreResult:
 @dataclass(frozen=True)
 class SkillsBundleResult:
     manifest: SkillsManifest
-    warnings: Tuple[OperationWarning, ...] = ()
+    warnings: tuple[OperationWarning, ...] = ()
 
 
 @dataclass(frozen=True)
 class SkillsRestoreOutcome:
-    results: Tuple[SkillRestoreResult, ...] = ()
-    warnings: Tuple[OperationWarning, ...] = ()
+    results: tuple[SkillRestoreResult, ...] = ()
+    warnings: tuple[OperationWarning, ...] = ()
 
 
 def write_skills_manifest(manifest: SkillsManifest, bundle_dir: Path) -> Path:
@@ -94,7 +92,7 @@ def write_skills_manifest(manifest: SkillsManifest, bundle_dir: Path) -> Path:
     return path
 
 
-def read_skills_manifest(bundle_dir: Path) -> Optional[SkillsManifest]:
+def read_skills_manifest(bundle_dir: Path) -> SkillsManifest | None:
     path = bundle_dir / SKILLS_MANIFEST_FILENAME
     if not path.is_file():
         return None
@@ -126,7 +124,7 @@ def read_skills_manifest(bundle_dir: Path) -> Optional[SkillsManifest]:
 def write_batch_skills_restore_report(
     report_path: Path,
     session_id: str,
-    results: List[SkillRestoreResult],
+    results: list[SkillRestoreResult],
 ) -> Path:
     existing: dict = {}
     if report_path.is_file():
@@ -165,8 +163,8 @@ def write_batch_skills_restore_report(
     return report_path
 
 
-def deduplicate_skill_manifests(manifests: List[SkillsManifest]) -> SkillsManifest:
-    seen: Dict[Tuple[str, str], SkillDescriptor] = {}
+def deduplicate_skill_manifests(manifests: list[SkillsManifest]) -> SkillsManifest:
+    seen: dict[tuple[str, str], SkillDescriptor] = {}
     for manifest in manifests:
         for skill in manifest.skills:
             key = (skill.source_root, skill.relative_dir)
@@ -207,7 +205,7 @@ def is_valid_bundled_skill_path(bundle_path: str, *, source_root: str, relative_
     )
 
 
-def _deserialize_skill_descriptor(raw_skill: object) -> Optional[SkillDescriptor]:
+def _deserialize_skill_descriptor(raw_skill: object) -> SkillDescriptor | None:
     if not isinstance(raw_skill, dict):
         return None
 
@@ -279,27 +277,27 @@ def _deserialize_skill_descriptor(raw_skill: object) -> Optional[SkillDescriptor
     )
 
 
-def _required_string(value: object) -> Optional[str]:
+def _required_string(value: object) -> str | None:
     return value if isinstance(value, str) else None
 
 
-def _required_non_empty_string(value: object) -> Optional[str]:
+def _required_non_empty_string(value: object) -> str | None:
     if not isinstance(value, str) or not value:
         return None
     return value
 
 
-def _required_bool(value: object) -> Optional[bool]:
+def _required_bool(value: object) -> bool | None:
     return value if isinstance(value, bool) else None
 
 
-def _required_non_negative_int(value: object) -> Optional[int]:
+def _required_non_negative_int(value: object) -> int | None:
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         return None
     return value
 
 
-def _optional_dependency_level(value: object, used: Optional[bool]) -> Optional[str]:
+def _optional_dependency_level(value: object, used: bool | None) -> str | None:
     if value is None:
         return "required" if used else "available"
     if not isinstance(value, str):
@@ -307,7 +305,7 @@ def _optional_dependency_level(value: object, used: Optional[bool]) -> Optional[
     return value
 
 
-def _optional_string_tuple(value: object) -> Optional[Tuple[str, ...]]:
+def _optional_string_tuple(value: object) -> tuple[str, ...] | None:
     if value is None:
         return ()
     if not isinstance(value, list):

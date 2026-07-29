@@ -6,18 +6,35 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in os.sys.path:
     os.sys.path.insert(0, str(SRC_DIR))
 
-from codex_session_toolkit.models import BundleSummary, LocalSkillSummary, MigratedOriginalSessionSummary, SessionSummary, SkillBundleSummary  # noqa: E402
-from codex_session_toolkit.tui.browser_flows import open_archived_session_browser, open_bundle_browser, open_local_skill_browser, open_migrated_original_session_browser, open_project_session_browser, open_session_browser, open_skill_bundle_browser, render_browser_frame  # noqa: E402
-from codex_session_toolkit.tui.bundle_flows import bundle_detail_lines  # noqa: E402
-from codex_session_toolkit.tui.progress_flows import _render_progress  # noqa: E402
-from codex_session_toolkit.tui.prompt_flows import prompt_choice, render_prompt_choice  # noqa: E402
-from codex_session_toolkit.tui.terminal import Ansi, strip_ansi  # noqa: E402
+from codex_session_toolkit.models import (
+    BundleSummary,
+    LocalSkillSummary,
+    MigratedOriginalSessionSummary,
+    SessionSummary,
+    SkillBundleSummary,
+)
+from codex_session_toolkit.tui.browser_flows import (
+    open_archived_session_browser,
+    open_bundle_browser,
+    open_local_skill_browser,
+    open_migrated_original_session_browser,
+    open_project_session_browser,
+    open_session_browser,
+    open_skill_bundle_browser,
+    render_browser_frame,
+)
+from codex_session_toolkit.tui.bundle_flows import bundle_detail_lines
+from codex_session_toolkit.tui.progress_flows import _render_progress
+from codex_session_toolkit.tui.prompt_flows import (
+    prompt_choice,
+    render_prompt_choice,
+)
+from codex_session_toolkit.tui.terminal import Ansi, strip_ansi
 
 
 class FakeBrowserApp:

@@ -10,13 +10,12 @@ import re
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from typing import Optional
 
 from .errors import ToolkitError
 from .paths import CodexPaths
 
-
 WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
+WSL_WINDOWS_MOUNT_RE = re.compile(r"^/mnt/([A-Za-z])(?:/|$)")
 
 
 def extract_iso_timestamp(raw_value: str) -> str:
@@ -80,24 +79,24 @@ def detect_machine_key() -> str:
     return machine_label_to_key(detect_machine_label())
 
 
-def build_machine_bundle_root(bundle_root: Path, machine_key: Optional[str] = None) -> Path:
+def build_machine_bundle_root(bundle_root: Path, machine_key: str | None = None) -> Path:
     resolved_key = machine_key or detect_machine_key()
     return Path(bundle_root).expanduser() / resolved_key
 
 
-def build_single_export_root(bundle_root: Path, machine_key: Optional[str] = None) -> Path:
+def build_single_export_root(bundle_root: Path, machine_key: str | None = None) -> Path:
     return build_machine_bundle_root(bundle_root, machine_key) / "sessions" / "single" / export_batch_slug()
 
 
-def build_batch_export_root(bundle_root: Path, archive_group: str, machine_key: Optional[str] = None) -> Path:
+def build_batch_export_root(bundle_root: Path, archive_group: str, machine_key: str | None = None) -> Path:
     return build_machine_bundle_root(bundle_root, machine_key) / "sessions" / archive_group / export_batch_slug()
 
 
-def build_project_export_root(bundle_root: Path, project_key: str, machine_key: Optional[str] = None) -> Path:
+def build_project_export_root(bundle_root: Path, project_key: str, machine_key: str | None = None) -> Path:
     return build_machine_bundle_root(bundle_root, machine_key) / "sessions" / "project" / project_key / export_batch_slug()
 
 
-def build_skills_export_root(bundle_root: Path, export_group: str, machine_key: Optional[str] = None) -> Path:
+def build_skills_export_root(bundle_root: Path, export_group: str, machine_key: str | None = None) -> Path:
     return build_machine_bundle_root(bundle_root, machine_key) / "skills" / export_group / export_batch_slug()
 
 
@@ -145,7 +144,7 @@ def restrict_to_local_bundle_workspace(paths: CodexPaths, target_path: Path, lab
 
 def normalize_bundle_root(
     paths: CodexPaths,
-    bundle_root: Optional[Path],
+    bundle_root: Path | None,
     default_root: Path,
     *,
     label: str = "Bundle root",
@@ -163,6 +162,10 @@ def _strip_wrapping_quotes(raw_value: str) -> str:
 
 def _looks_like_windows_path(raw_value: str) -> bool:
     return bool(WINDOWS_DRIVE_RE.match(raw_value or "")) or "\\" in (raw_value or "")
+
+
+def _looks_like_wsl_windows_mount(raw_value: str) -> bool:
+    return bool(WSL_WINDOWS_MOUNT_RE.match(raw_value or ""))
 
 
 def normalize_project_path(project_path: str) -> str:
@@ -189,7 +192,10 @@ def _normalized_path_parts(raw_value: str) -> tuple[str, ...]:
 
     if _looks_like_windows_path(normalized):
         return tuple(part.lower() for part in PureWindowsPath(normalized).parts)
-    return PurePosixPath(normalized).parts
+    parts = PurePosixPath(normalized).parts
+    if _looks_like_wsl_windows_mount(normalized):
+        return tuple(part.lower() for part in parts)
+    return parts
 
 
 def project_label_from_path(project_path: str) -> str:
@@ -221,14 +227,23 @@ def project_filter_to_key(project_filter: str) -> str:
 
 
 def project_path_matches(session_cwd: str, project_path: str) -> bool:
-    session_parts = _normalized_path_parts(session_cwd)
-    project_parts = _normalized_path_parts(project_path)
+    normalized_session = normalize_project_path(session_cwd)
+    normalized_project = normalize_project_path(project_path)
+    if not normalized_session or not normalized_project:
+        return False
+
+    session_parts = _normalized_path_parts(normalized_session)
+    project_parts = _normalized_path_parts(normalized_project)
     if not session_parts or not project_parts:
         return False
 
-    session_is_windows = _looks_like_windows_path(normalize_project_path(session_cwd))
-    project_is_windows = _looks_like_windows_path(normalize_project_path(project_path))
+    session_is_windows = _looks_like_windows_path(normalized_session)
+    project_is_windows = _looks_like_windows_path(normalized_project)
+    session_is_wsl_mount = _looks_like_wsl_windows_mount(normalized_session)
+    project_is_wsl_mount = _looks_like_wsl_windows_mount(normalized_project)
     if session_is_windows != project_is_windows:
+        return False
+    if session_is_wsl_mount != project_is_wsl_mount:
         return False
 
     if len(session_parts) < len(project_parts):

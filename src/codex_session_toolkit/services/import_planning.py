@@ -5,20 +5,19 @@ from __future__ import annotations
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 from uuid import uuid4
 
 from ..errors import ToolkitError
 from ..models import BundleSummary
 from ..paths import CodexPaths
 from ..stores.bundle_layout import LEGACY_MACHINE_KEY, bundle_export_group_label
+from ..stores.bundle_repository import resolve_bundle_dir, resolve_known_bundle_dir
 from ..stores.bundle_scanner import (
     bundle_contains_subagent_session,
     collect_bundle_summaries,
     collect_known_bundle_summaries,
     latest_distinct_bundle_summaries,
 )
-from ..stores.bundle_repository import resolve_bundle_dir, resolve_known_bundle_dir
 from ..support import (
     normalize_bundle_root,
     normalize_project_path,
@@ -44,7 +43,7 @@ class BatchImportPlan:
     project_label: str
     project_source_path: str
     target_project_path: str
-    skills_restore_report_candidate_path: Optional[Path]
+    skills_restore_report_candidate_path: Path | None
 
     @property
     def bundle_dirs(self) -> list[Path]:
@@ -63,7 +62,7 @@ class BatchImportPlan:
 def build_batch_import_plan(
     paths: CodexPaths,
     *,
-    bundle_root: Optional[Path],
+    bundle_root: Path | None,
     machine_filter: str,
     export_group_filter: str,
     project_filter: str,
@@ -131,7 +130,7 @@ def build_selected_import_plan(
     paths: CodexPaths,
     input_values: list[str] | tuple[str, ...],
     *,
-    bundle_root: Optional[Path],
+    bundle_root: Path | None,
     source_group: str,
     machine_filter: str,
     export_group_filter: str,
@@ -378,7 +377,7 @@ def _skills_restore_report_candidate_path(
     bundle_root: Path,
     *,
     skills_mode: str,
-) -> Optional[Path]:
+) -> Path | None:
     if skills_mode == "skip":
         return None
     report_root = bundle_root if bundle_root.is_dir() else paths.legacy_session_bundle_root

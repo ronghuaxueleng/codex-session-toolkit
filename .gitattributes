@@ -5,3 +5,4 @@ scripts/release export-ignore
 Makefile export-ignore
 release.sh export-ignore
 .gitignore export-ignore
+*.sh text eol=lf

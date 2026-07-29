@@ -7,7 +7,6 @@ import argparse
 from . import APP_COMMAND
 from .command_catalog import command_help
 
-
 SOURCE_GROUP_CHOICES = ["all", "bundle", "desktop"]
 SKILLS_MODE_CHOICES = ["best-effort", "strict", "skip", "overwrite"]
 

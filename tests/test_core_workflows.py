@@ -11,63 +11,118 @@ from contextlib import contextmanager, redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in os.sys.path:
     os.sys.path.insert(0, str(SRC_DIR))
 
-from codex_session_toolkit.paths import CodexPaths  # noqa: E402
-from codex_session_toolkit.commands import run_cli  # noqa: E402
-from codex_session_toolkit.errors import ToolkitError  # noqa: E402
-from codex_session_toolkit.models import BundleSummary  # noqa: E402
-from codex_session_toolkit.presenters.reports import print_batch_import_result  # noqa: E402
-from codex_session_toolkit.services.backups import delete_session_backup, list_session_backups, restore_session_backup  # noqa: E402
-from codex_session_toolkit.services.browse import get_bundle_summaries, get_project_session_summaries, get_session_summaries, validate_bundles  # noqa: E402
-from codex_session_toolkit.services.bundle_management import delete_bundle_summaries  # noqa: E402
-from codex_session_toolkit.services.clone import clone_to_provider, delete_migrated_original_sessions, list_migrated_original_sessions  # noqa: E402
-from codex_session_toolkit.services.exporting import export_active_desktop_all, export_desktop_all, export_project_sessions, export_selected_sessions, export_session  # noqa: E402
-from codex_session_toolkit.services.github_sync import (  # noqa: E402
-    _conflict_paths,
+from codex_session_toolkit.commands import run_cli
+from codex_session_toolkit.errors import ToolkitError
+from codex_session_toolkit.models import BundleSummary
+from codex_session_toolkit.paths import CodexPaths
+from codex_session_toolkit.presenters.reports import (
+    print_batch_import_result,
+)
+from codex_session_toolkit.services.archived_sessions import (
+    delete_archived_sessions,
+)
+from codex_session_toolkit.services.backups import (
+    delete_session_backup,
+    list_session_backups,
+    restore_session_backup,
+)
+from codex_session_toolkit.services.browse import (
+    get_bundle_summaries,
+    get_project_session_summaries,
+    get_session_summaries,
+    validate_bundles,
+)
+from codex_session_toolkit.services.bundle_management import (
+    delete_bundle_summaries,
+)
+from codex_session_toolkit.services.clone import (
+    clone_to_provider,
+    delete_migrated_original_sessions,
+    list_migrated_original_sessions,
+)
+from codex_session_toolkit.services.exporting import (
+    export_active_desktop_all,
+    export_desktop_all,
+    export_project_sessions,
+    export_selected_sessions,
+    export_session,
+)
+from codex_session_toolkit.services.github_sync import (
     _available_default_credential_helper,
-    _available_github_cli_credential_helper,
     _available_git_credential_manager_helper,
+    _available_github_cli_credential_helper,
+    _conflict_paths,
     _git_process,
     _git_proxy_env,
     _git_status_paths,
     _group_bundle_changes,
-    _portable_credential_helper_overrides,
-    _portable_credential_helper,
-    _portable_credential_helpers,
     _is_supported_credential_helper,
     _normalize_git_relative_path,
+    _portable_credential_helper,
+    _portable_credential_helper_overrides,
+    _portable_credential_helpers,
     configure_github_proxy,
     connect_bundles_to_github,
     get_github_sync_status,
     pull_bundles_from_github,
     sync_bundles_to_github,
 )
-from codex_session_toolkit.services.archived_sessions import delete_archived_sessions  # noqa: E402
-from codex_session_toolkit.services.session_deletion import delete_sessions  # noqa: E402
-from codex_session_toolkit.services.importing import import_desktop_all, import_selected_bundles, import_session  # noqa: E402
-from codex_session_toolkit.services.provider import detect_provider  # noqa: E402
-from codex_session_toolkit.services.repair import repair_desktop  # noqa: E402
-from codex_session_toolkit.services.skills_transfer import delete_local_skill, delete_local_skills, export_skills, import_skill_bundle, list_skill_bundles, list_local_skills  # noqa: E402
-from codex_session_toolkit.support import default_local_project_target, iso_to_epoch_ms, machine_label_to_key  # noqa: E402
-from codex_session_toolkit.stores import bundles as legacy_bundles  # noqa: E402
-from codex_session_toolkit.stores.bundle_scanner import collect_known_bundle_summaries, latest_distinct_bundle_summaries  # noqa: E402
-from codex_session_toolkit.stores.desktop_state import (  # noqa: E402
-    ensure_sidebar_workspace_visibility,
+from codex_session_toolkit.services.importing import (
+    import_desktop_all,
+    import_selected_bundles,
+    import_session,
+)
+from codex_session_toolkit.services.provider import detect_provider
+from codex_session_toolkit.services.repair import repair_desktop
+from codex_session_toolkit.services.session_deletion import (
+    delete_sessions,
+)
+from codex_session_toolkit.services.skills_transfer import (
+    delete_local_skill,
+    delete_local_skills,
+    export_skills,
+    import_skill_bundle,
+    list_local_skills,
+    list_skill_bundles,
+)
+from codex_session_toolkit.stores import bundles as legacy_bundles
+from codex_session_toolkit.stores.bundle_scanner import (
+    collect_known_bundle_summaries,
+    latest_distinct_bundle_summaries,
+)
+from codex_session_toolkit.stores.desktop_state import (
     ensure_sidebar_thread_state,
+    ensure_sidebar_workspace_visibility,
     merge_workspace_root,
     pin_desktop_thread_ids,
     promote_desktop_thread_ids_for_sidebar,
     promote_workspace_threads_for_sidebar,
     repair_blank_thread_sources,
 )
-from codex_session_toolkit.stores.session_files import iter_session_files, read_session_payload  # noqa: E402
-from codex_session_toolkit.stores.skills import SkillDescriptor, SkillsManifest, compute_skill_directory_hash, infer_skill_source_root, read_skills_manifest, write_skills_manifest  # noqa: E402
-from codex_session_toolkit.validation import load_manifest, write_manifest  # noqa: E402
+from codex_session_toolkit.stores.session_files import (
+    iter_session_files,
+    read_session_payload,
+)
+from codex_session_toolkit.stores.skills import (
+    SkillDescriptor,
+    SkillsManifest,
+    compute_skill_directory_hash,
+    infer_skill_source_root,
+    read_skills_manifest,
+    write_skills_manifest,
+)
+from codex_session_toolkit.support import (
+    default_local_project_target,
+    iso_to_epoch_ms,
+    machine_label_to_key,
+    project_path_matches,
+)
+from codex_session_toolkit.validation import load_manifest, write_manifest
 
 
 @contextmanager
@@ -935,8 +990,7 @@ class CoreWorkflowTests(unittest.TestCase):
             self.assertEqual(
                 subprocess.run(
                     ["git", "-C", str(workspace / "codex_bundles"), "config", "--local", "--get", "http.proxy"],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
+                    capture_output=True,
                     text=True,
                     check=False,
                 ).stdout.strip(),
@@ -956,7 +1010,7 @@ class CoreWorkflowTests(unittest.TestCase):
             home = Path(tmpdir) / "home"
             remote = Path(tmpdir) / "remote.git"
             workspace.mkdir()
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 configure_github_proxy(CodexPaths(home=home), "socks5://127.0.0.1:7890")
@@ -976,29 +1030,26 @@ class CoreWorkflowTests(unittest.TestCase):
             workspace.mkdir()
             bundle_root.mkdir(parents=True)
 
-            subprocess.run(["git", "init"], cwd=bundle_root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init"], cwd=bundle_root, check=True, capture_output=True, text=True)
             subprocess.run(
                 ["git", "config", "--local", "--add", "credential.helper", r"C:\Program Files\GitHub CLI\gh.exe auth git-credential"],
                 cwd=bundle_root,
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             )
             subprocess.run(
                 ["git", "config", "--local", "--add", "credential.helper", "manager"],
                 cwd=bundle_root,
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             )
             subprocess.run(
                 ["git", "config", "--local", "--add", "credential.helper", "store"],
                 cwd=bundle_root,
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             )
 
@@ -1058,14 +1109,10 @@ class CoreWorkflowTests(unittest.TestCase):
             self.assertEqual(_available_default_credential_helper(), "!gh auth git-credential")
 
     def test_github_sync_normalizes_windows_relative_paths(self) -> None:
-        raw_status = "\n".join(
-            [
-                r" M machine-a\sessions\single\20260502\demo-session\manifest.env",
-                r"?? machine-a\skills\all\20260502\demo-skill\SKILL.md",
-                r"R  machine-a\old\skill.md -> machine-a\skills\all\20260502\renamed\SKILL.md",
-                r" A machine-a//notes\note.md",
-            ]
-        )
+        raw_status = r""" M machine-a\sessions\single\20260502\demo-session\manifest.env
+?? machine-a\skills\all\20260502\demo-skill\SKILL.md
+R  machine-a\old\skill.md -> machine-a\skills\all\20260502\renamed\SKILL.md
+ A machine-a//notes\note.md"""
 
         with patch("codex_session_toolkit.services.github_sync._git_output", return_value=raw_status):
             status_paths = _git_status_paths(Path("/bundle"))
@@ -1092,13 +1139,9 @@ class CoreWorkflowTests(unittest.TestCase):
         self.assertEqual(_normalize_git_relative_path(r"\machine-a//skills\demo\SKILL.md"), "machine-a/skills/demo/SKILL.md")
 
     def test_github_sync_normalizes_windows_conflict_paths(self) -> None:
-        raw_status = "\n".join(
-            [
-                r"UU machine-a\sessions\single\20260502\demo-session\manifest.env",
-                r"AA machine-a\skills\all\20260502\demo-skill\SKILL.md",
-                r" M machine-a\notes\note.md",
-            ]
-        )
+        raw_status = r"""UU machine-a\sessions\single\20260502\demo-session\manifest.env
+AA machine-a\skills\all\20260502\demo-skill\SKILL.md
+ M machine-a\notes\note.md"""
 
         with patch("codex_session_toolkit.services.github_sync._git_output", return_value=raw_status):
             conflict_paths = _conflict_paths(Path("/bundle"))
@@ -1127,7 +1170,7 @@ class CoreWorkflowTests(unittest.TestCase):
             skill_file.parent.mkdir(parents=True)
             session_file.write_text("SESSION_ID=demo\n", encoding="utf-8")
             skill_file.write_text("# demo skill\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 connect_result = connect_bundles_to_github(
@@ -1161,15 +1204,13 @@ class CoreWorkflowTests(unittest.TestCase):
             remote_session_content = subprocess.run(
                 ["git", "--git-dir", str(remote), "show", "main:machine-a/sessions/single/20260502/demo-session/manifest.env"],
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             ).stdout
             remote_skill_content = subprocess.run(
                 ["git", "--git-dir", str(remote), "show", "main:machine-a/skills/all/20260502/demo-skill/SKILL.md"],
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             ).stdout
             self.assertEqual(remote_session_content, "SESSION_ID=demo\n")
@@ -1189,7 +1230,7 @@ class CoreWorkflowTests(unittest.TestCase):
             workspace.mkdir()
             session_file.parent.mkdir(parents=True)
             session_file.write_text("SESSION_ID=demo\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace), redirect_stdout(io.StringIO()):
                 exit_code = run_cli(
@@ -1209,8 +1250,7 @@ class CoreWorkflowTests(unittest.TestCase):
             remote_content = subprocess.run(
                 ["git", "--git-dir", str(remote), "show", f"main:{session_path}"],
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             ).stdout
             self.assertEqual(remote_content, "SESSION_ID=demo\n")
@@ -1225,9 +1265,8 @@ class CoreWorkflowTests(unittest.TestCase):
             bundle_root = workspace / "codex_bundles"
             bundle_root.mkdir(parents=True)
 
-            with pushd(workspace):
-                with self.assertRaises(ToolkitError):
-                    sync_bundles_to_github(CodexPaths(home=home), dry_run=True)
+            with pushd(workspace), self.assertRaises(ToolkitError):
+                sync_bundles_to_github(CodexPaths(home=home), dry_run=True)
 
     def test_github_sync_status_reports_tui_connection_state(self) -> None:
         if not shutil.which("git"):
@@ -1245,7 +1284,7 @@ class CoreWorkflowTests(unittest.TestCase):
             skill_file.parent.mkdir(parents=True)
             session_file.write_text("SESSION_ID=demo\n", encoding="utf-8")
             skill_file.write_text("# demo skill\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 initial_status = get_github_sync_status(CodexPaths(home=home))
@@ -1270,13 +1309,12 @@ class CoreWorkflowTests(unittest.TestCase):
             home = Path(tmpdir) / "home"
             remote = Path(tmpdir) / "source.git"
             workspace.mkdir()
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "init"], cwd=workspace, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=workspace, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
+            subprocess.run(["git", "init"], cwd=workspace, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=workspace, check=True, capture_output=True, text=True)
 
-            with pushd(workspace):
-                with self.assertRaises(ToolkitError):
-                    connect_bundles_to_github(CodexPaths(home=home), str(remote))
+            with pushd(workspace), self.assertRaises(ToolkitError):
+                connect_bundles_to_github(CodexPaths(home=home), str(remote))
 
     def test_sync_bundles_to_github_rejects_project_source_remote(self) -> None:
         if not shutil.which("git"):
@@ -1289,11 +1327,11 @@ class CoreWorkflowTests(unittest.TestCase):
             bundle_root = workspace / "codex_bundles"
             workspace.mkdir()
             bundle_root.mkdir()
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "init"], cwd=workspace, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=workspace, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "init"], cwd=bundle_root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=bundle_root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
+            subprocess.run(["git", "init"], cwd=workspace, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=workspace, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "init"], cwd=bundle_root, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "remote", "add", "origin", str(remote)], cwd=bundle_root, check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 status = get_github_sync_status(CodexPaths(home=home), check_remote=True)
@@ -1319,20 +1357,20 @@ class CoreWorkflowTests(unittest.TestCase):
             workspace.mkdir()
             session_file.parent.mkdir(parents=True)
             session_file.write_text("SESSION_ID=v1\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 connect_bundles_to_github(CodexPaths(home=home), str(remote), branch="main")
                 first_result = sync_bundles_to_github(CodexPaths(home=home), branch="main", message="Initial bundles")
 
             self.assertTrue(first_result.pushed)
-            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, capture_output=True, text=True)
             (other_clone / session_path).write_text("SESSION_ID=remote-v2\n", encoding="utf-8")
-            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "commit", "-m", "Remote bundle update"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "commit", "-m", "Remote bundle update"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, capture_output=True, text=True)
 
             session_file.write_text("SESSION_ID=local-v2\n", encoding="utf-8")
             with pushd(workspace):
@@ -1364,20 +1402,20 @@ class CoreWorkflowTests(unittest.TestCase):
             workspace.mkdir()
             first_session_file.parent.mkdir(parents=True)
             first_session_file.write_text("SESSION_ID=session-a\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 connect_bundles_to_github(CodexPaths(home=home), str(remote), branch="main")
                 sync_bundles_to_github(CodexPaths(home=home), branch="main", message="Initial bundles")
 
-            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, capture_output=True, text=True)
             (other_clone / skill_path).parent.mkdir(parents=True)
             (other_clone / skill_path).write_text("# remote skill\n", encoding="utf-8")
-            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "commit", "-m", "Remote skill update"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "commit", "-m", "Remote skill update"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, capture_output=True, text=True)
 
             second_session_file.parent.mkdir(parents=True)
             second_session_file.write_text("SESSION_ID=session-b\n", encoding="utf-8")
@@ -1390,15 +1428,13 @@ class CoreWorkflowTests(unittest.TestCase):
             remote_skill_content = subprocess.run(
                 ["git", "--git-dir", str(remote), "show", f"main:{skill_path}"],
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             ).stdout
             remote_session_content = subprocess.run(
                 ["git", "--git-dir", str(remote), "show", f"main:{second_session_path}"],
                 check=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                capture_output=True,
                 text=True,
             ).stdout
             self.assertEqual(remote_skill_content, "# remote skill\n")
@@ -1419,19 +1455,19 @@ class CoreWorkflowTests(unittest.TestCase):
             workspace.mkdir()
             skill_file.parent.mkdir(parents=True)
             skill_file.write_text("# local skill\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 connect_bundles_to_github(CodexPaths(home=home), str(remote), branch="main")
                 sync_bundles_to_github(CodexPaths(home=home), branch="main", message="Initial skill bundle")
 
-            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, capture_output=True, text=True)
             (other_clone / skill_path).write_text("# remote skill v2\n", encoding="utf-8")
-            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "commit", "-m", "Remote skill update"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "commit", "-m", "Remote skill update"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 status = get_github_sync_status(CodexPaths(home=home), check_remote=True)
@@ -1461,19 +1497,19 @@ class CoreWorkflowTests(unittest.TestCase):
             workspace.mkdir()
             session_file.parent.mkdir(parents=True)
             session_file.write_text("SESSION_ID=v1\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 connect_bundles_to_github(CodexPaths(home=home), str(remote), branch="main")
                 sync_bundles_to_github(CodexPaths(home=home), branch="main", message="Initial bundles")
 
-            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, capture_output=True, text=True)
             (other_clone / session_path).write_text("SESSION_ID=remote-v2\n", encoding="utf-8")
-            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "commit", "-m", "Remote bundle update"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "commit", "-m", "Remote bundle update"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, capture_output=True, text=True)
 
             session_file.write_text("SESSION_ID=local-uncommitted\n", encoding="utf-8")
             with pushd(workspace):
@@ -1501,19 +1537,19 @@ class CoreWorkflowTests(unittest.TestCase):
             workspace.mkdir()
             session_file.parent.mkdir(parents=True)
             session_file.write_text("SESSION_ID=v1\n", encoding="utf-8")
-            subprocess.run(["git", "init", "--bare", str(remote)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "init", "--bare", str(remote)], check=True, capture_output=True, text=True)
 
             with pushd(workspace):
                 connect_bundles_to_github(CodexPaths(home=home), str(remote), branch="main")
                 sync_bundles_to_github(CodexPaths(home=home), branch="main", message="Initial bundles")
 
-            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "clone", str(remote), str(other_clone)], check=True, capture_output=True, text=True)
             (other_clone / session_path).write_text("SESSION_ID=remote-v2\n", encoding="utf-8")
-            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "commit", "-m", "Remote bundle update"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(["git", "config", "user.name", "Remote Device"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "config", "user.email", "remote-device@example.local"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "add", "-A"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "commit", "-m", "Remote bundle update"], cwd=other_clone, check=True, capture_output=True, text=True)
+            subprocess.run(["git", "push", "origin", "main"], cwd=other_clone, check=True, capture_output=True, text=True)
 
             session_file.write_text("SESSION_ID=local-uncommitted\n", encoding="utf-8")
             with pushd(workspace):
@@ -2024,6 +2060,11 @@ class CoreWorkflowTests(unittest.TestCase):
 
                 sibling_target, sibling_status = default_local_project_target("project-a", str(workspace / "missing-project-a"))
                 self.assertEqual((str(Path(sibling_target).resolve()), sibling_status), (str(sibling_project.resolve()), "same_name"))
+
+    def test_project_path_matches_wsl_windows_mounts_case_insensitively(self) -> None:
+        self.assertTrue(project_path_matches("/mnt/e/github/my-n/packages/app", "/mnt/e/GitHub/my-n"))
+        self.assertTrue(project_path_matches("/mnt/e/GitHub/my-n/packages/app", "/mnt/e/github/my-n"))
+        self.assertFalse(project_path_matches("/home/user/MyProject/packages/app", "/home/user/myproject"))
 
     def test_detect_provider_falls_back_to_latest_desktop_thread(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -4178,12 +4219,11 @@ class CoreWorkflowTests(unittest.TestCase):
                 return real_mkdtemp(*args, **kwargs)
 
             paths = CodexPaths(home=home)
-            with pushd(workspace), env_override("CST_MACHINE_LABEL", "Win-Machine"):
-                with patch(
-                    "codex_session_toolkit.services.exporting.tempfile.mkdtemp",
-                    side_effect=capture_mkdtemp,
-                ):
-                    result = export_session(paths, session_id)
+            with pushd(workspace), env_override("CST_MACHINE_LABEL", "Win-Machine"), patch(
+                "codex_session_toolkit.services.exporting.tempfile.mkdtemp",
+                side_effect=capture_mkdtemp,
+            ):
+                result = export_session(paths, session_id)
 
             self.assertEqual(mkdtemp_calls[0]["prefix"], ".tmp.")
             self.assertNotIn(session_id, mkdtemp_calls[0]["prefix"])
@@ -4216,9 +4256,10 @@ class CoreWorkflowTests(unittest.TestCase):
                 return real_rename(self, target)
 
             paths = CodexPaths(home=home)
-            with pushd(workspace), env_override("CST_MACHINE_LABEL", "Win-Machine"):
-                with patch("pathlib.Path.rename", rename_side_effect):
-                    result = export_session(paths, session_id)
+            with pushd(workspace), env_override("CST_MACHINE_LABEL", "Win-Machine"), patch(
+                "pathlib.Path.rename", rename_side_effect
+            ):
+                result = export_session(paths, session_id)
 
             self.assertTrue((result.bundle_dir / "manifest.env").is_file())
             self.assertFalse(any(path.name.startswith(".tmp.") for path in result.bundle_dir.parent.iterdir()))
@@ -4880,9 +4921,10 @@ class CoreWorkflowTests(unittest.TestCase):
                     raise OSError("simulated restore failure")
                 return real_copytree(src, dst, *args, **kwargs)
 
-            with patch("codex_session_toolkit.stores.skills.shutil.copytree", side_effect=copytree_side_effect):
-                with pushd(workspace):
-                    result = import_desktop_all(dst_paths)
+            with patch(
+                "codex_session_toolkit.stores.skills.shutil.copytree", side_effect=copytree_side_effect
+            ), pushd(workspace):
+                result = import_desktop_all(dst_paths)
 
             self.assertEqual(result.total_skills_restored, 1)
             self.assertEqual(result.total_skills_failed, 1)
@@ -5432,9 +5474,10 @@ class CoreWorkflowTests(unittest.TestCase):
                     raise OSError("simulated copy failure")
                 return real_copytree(src, dst, *args, **kwargs)
 
-            with patch("codex_session_toolkit.stores.skills.shutil.copytree", side_effect=copytree_side_effect):
-                with pushd(workspace), env_override("CST_MACHINE_LABEL", "TestMachine"):
-                    result = export_session(paths, session_id)
+            with patch(
+                "codex_session_toolkit.stores.skills.shutil.copytree", side_effect=copytree_side_effect
+            ), pushd(workspace), env_override("CST_MACHINE_LABEL", "TestMachine"):
+                result = export_session(paths, session_id)
 
             self.assertEqual(result.skills_available_count, 1)
             self.assertEqual(result.skills_bundled_count, 0)
@@ -5485,9 +5528,8 @@ class CoreWorkflowTests(unittest.TestCase):
             with patch(
                 "codex_session_toolkit.stores.skills.compute_skill_directory_hash",
                 side_effect=compute_hash_side_effect,
-            ):
-                with pushd(workspace), env_override("CST_MACHINE_LABEL", "TestMachine"):
-                    result = export_session(paths, session_id)
+            ), pushd(workspace), env_override("CST_MACHINE_LABEL", "TestMachine"):
+                result = export_session(paths, session_id)
 
             self.assertEqual(result.skills_available_count, 2)
             self.assertEqual(result.skills_bundled_count, 1)
@@ -6157,9 +6199,10 @@ class CoreWorkflowTests(unittest.TestCase):
                 return real_copytree(src, dst, *args, **kwargs)
 
             dst_paths = CodexPaths(home=dst_home)
-            with patch("codex_session_toolkit.stores.skills.shutil.copytree", side_effect=copytree_side_effect):
-                with pushd(workspace):
-                    import_result = import_session(dst_paths, str(bundle_dir))
+            with patch(
+                "codex_session_toolkit.stores.skills.shutil.copytree", side_effect=copytree_side_effect
+            ), pushd(workspace):
+                import_result = import_session(dst_paths, str(bundle_dir))
 
             self.assertEqual(import_result.skills_restored_count, 1)
             self.assertEqual(import_result.skills_missing_count, 0)
@@ -6209,13 +6252,12 @@ class CoreWorkflowTests(unittest.TestCase):
             with patch(
                 "codex_session_toolkit.services.skill_sidecars.write_batch_skills_restore_report",
                 side_effect=OSError("simulated report write failure"),
-            ):
-                with pushd(workspace):
-                    import_result = import_session(
-                        dst_paths,
-                        str(bundle_dir),
-                        skills_restore_report_path=report_path,
-                    )
+            ), pushd(workspace):
+                import_result = import_session(
+                    dst_paths,
+                    str(bundle_dir),
+                    skills_restore_report_path=report_path,
+                )
 
             self.assertEqual(import_result.skills_restored_count, 1)
             self.assertEqual(import_result.skills_failed_count, 0)

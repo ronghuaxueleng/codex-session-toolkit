@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
-
 
 STATE_DB_RE = re.compile(r"^state_(\d+)\.sqlite$")
 
 
 @dataclass(frozen=True)
 class CodexPaths:
-    home: Path = Path.home()
+    home: Path = field(default_factory=Path.home)
 
     @property
     def code_dir(self) -> Path:
@@ -83,7 +81,7 @@ class CodexPaths:
     def codex_skills_dir(self) -> Path:
         return self.code_dir / "skills"
 
-    def latest_state_db(self) -> Optional[Path]:
+    def latest_state_db(self) -> Path | None:
         matches = sorted(self.code_dir.glob("state_*.sqlite"), key=_state_db_sort_key)
         return matches[-1] if matches else None
 

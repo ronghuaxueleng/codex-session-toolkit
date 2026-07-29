@@ -6,7 +6,6 @@ from pathlib import Path
 
 from ..support import normalize_project_path, project_label_from_path
 
-
 LEGACY_MACHINE_KEY = "_legacy"
 LEGACY_MACHINE_LABEL = "旧布局"
 LEGACY_EXPORT_GROUP = "legacy"

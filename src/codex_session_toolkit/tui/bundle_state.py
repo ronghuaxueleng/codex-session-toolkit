@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, List, Sequence, Tuple
+from typing import Callable, Sequence
 
 from ..models import BundleSummary
 from ..stores.bundle_layout import EXPORT_GROUP_ORDER, bundle_export_group_label
@@ -12,8 +12,8 @@ from ..support import default_local_project_target, project_label_to_key
 
 @dataclass(frozen=True)
 class BundleFilterState:
-    machine_options: List[Tuple[str, str]]
-    export_group_options: List[Tuple[str, str]]
+    machine_options: list[tuple[str, str]]
+    export_group_options: list[tuple[str, str]]
     normalized_machine_filter: str
     normalized_export_group_filter: str
     current_machine_label: str
@@ -25,7 +25,7 @@ class BundleMachineOptionState:
     machine_key: str
     machine_label: str
     bundle_count: int
-    export_groups: Tuple[str, ...]
+    export_groups: tuple[str, ...]
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ class BundleCategoryOptionState:
     export_group: str
     export_group_label: str
     bundle_count: int
-    entries: List[BundleSummary]
+    entries: list[BundleSummary]
 
 
 @dataclass(frozen=True)
@@ -42,7 +42,7 @@ class BundleProjectOptionState:
     project_label: str
     project_path: str
     bundle_count: int
-    entries: List[BundleSummary]
+    entries: list[BundleSummary]
     local_status: str
     local_status_label: str
     local_target_path: str
@@ -104,7 +104,7 @@ def build_bundle_filter_state(
     )
 
 
-def build_machine_folder_options(entries: Sequence[BundleSummary]) -> List[BundleMachineOptionState]:
+def build_machine_folder_options(entries: Sequence[BundleSummary]) -> list[BundleMachineOptionState]:
     grouped: dict[str, dict[str, object]] = {}
     for bundle in entries:
         machine_key = bundle.source_machine_key or ""
@@ -131,8 +131,8 @@ def build_machine_folder_options(entries: Sequence[BundleSummary]) -> List[Bundl
     ]
 
 
-def build_category_folder_options(entries: Sequence[BundleSummary]) -> List[BundleCategoryOptionState]:
-    grouped: dict[str, List[BundleSummary]] = {}
+def build_category_folder_options(entries: Sequence[BundleSummary]) -> list[BundleCategoryOptionState]:
+    grouped: dict[str, list[BundleSummary]] = {}
     for bundle in entries:
         grouped.setdefault(bundle.export_group, []).append(bundle)
 
@@ -152,8 +152,8 @@ def build_category_folder_options(entries: Sequence[BundleSummary]) -> List[Bund
 def build_project_folder_options(
     entries: Sequence[BundleSummary],
     *,
-    local_target_resolver: Callable[[str, str], Tuple[str, str]] = default_local_project_target,
-) -> List[BundleProjectOptionState]:
+    local_target_resolver: Callable[[str, str], tuple[str, str]] = default_local_project_target,
+) -> list[BundleProjectOptionState]:
     grouped: dict[str, dict[str, object]] = {}
     for bundle in entries:
         project_key = bundle.project_key or project_label_to_key(bundle.project_label or bundle.bundle_dir.parents[1].name)
@@ -178,7 +178,7 @@ def build_project_folder_options(
         grouped,
         key=lambda key: (str(grouped[key]["label"]).lower(), key.lower()),
     )
-    project_options: List[BundleProjectOptionState] = []
+    project_options: list[BundleProjectOptionState] = []
     for project_key in ordered_keys:
         project_label = str(grouped[project_key]["label"])
         project_path = str(grouped[project_key]["path"])

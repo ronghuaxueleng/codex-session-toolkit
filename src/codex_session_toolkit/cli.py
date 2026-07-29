@@ -5,7 +5,7 @@ from __future__ import annotations
 import argparse
 import platform
 import sys
-from typing import Optional, Sequence
+from typing import Sequence
 
 from . import APP_COMMAND, APP_DISPLAY_NAME, __version__
 from .command_catalog import CLI_SUBCOMMANDS
@@ -17,7 +17,11 @@ from .tui.app import run_tui
 from .tui.maintenance_modes import run_cleanup_mode, run_clone_mode
 from .tui.terminal import (
     Ansi,
+)
+from .tui.terminal import (
     horizontal_rule as _hr,
+)
+from .tui.terminal import (
     style_text as _style,
 )
 from .tui.terminal_io import configure_text_streams as _configure_text_streams
@@ -28,7 +32,7 @@ from .tui.view_models import ToolkitAppContext
 DEFAULT_MODEL_PROVIDER = "cliproxyapi"
 
 
-def resolve_target_model_provider(paths: Optional[CodexPaths] = None) -> str:
+def resolve_target_model_provider(paths: CodexPaths | None = None) -> str:
     paths = paths or CodexPaths()
     try:
         return detect_provider(paths)
@@ -36,7 +40,7 @@ def resolve_target_model_provider(paths: Optional[CodexPaths] = None) -> str:
         return DEFAULT_MODEL_PROVIDER
 
 
-def build_app_context(paths: Optional[CodexPaths] = None) -> ToolkitAppContext:
+def build_app_context(paths: CodexPaths | None = None) -> ToolkitAppContext:
     paths = paths or CodexPaths()
     return ToolkitAppContext(
         target_provider=resolve_target_model_provider(paths),
@@ -121,7 +125,7 @@ def print_header(context: ToolkitAppContext, dry_run: bool) -> None:
     print(_hr())
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     _configure_text_streams()
     if argv is None:
         argv = sys.argv[1:]

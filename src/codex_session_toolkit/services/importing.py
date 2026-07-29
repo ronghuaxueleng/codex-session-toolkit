@@ -7,12 +7,14 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from typing import Optional
 
 from ..errors import ToolkitError
 from ..models import BatchImportResult, ImportResult, OperationWarning
 from ..paths import CodexPaths
-from ..services.import_planning import build_batch_import_plan, build_selected_import_plan
+from ..services.import_planning import (
+    build_batch_import_plan,
+    build_selected_import_plan,
+)
 from ..services.provider import detect_provider
 from ..services.skill_sidecars import restore_bundle_skills_sidecar
 from ..stores.bundle_repository import (
@@ -23,14 +25,22 @@ from ..stores.desktop_state import (
     ensure_desktop_sidebar_thread_state,
     ensure_desktop_workspace_root,
     load_thread_metadata,
+    prepare_session_for_import,
     promote_desktop_thread_ids_for_sidebar,
     promote_workspace_threads_for_sidebar,
-    prepare_session_for_import,
     upsert_threads_table,
 )
 from ..stores.history import first_history_text
-from ..stores.index import is_weak_thread_name, load_existing_index, upsert_session_index
-from ..stores.session_files import build_session_preview, extract_last_timestamp, extract_session_field_from_file
+from ..stores.index import (
+    is_weak_thread_name,
+    load_existing_index,
+    upsert_session_index,
+)
+from ..stores.session_files import (
+    build_session_preview,
+    extract_last_timestamp,
+    extract_session_field_from_file,
+)
 from ..stores.session_parser import normalize_session_text, parse_session_file
 from ..support import (
     classify_session_kind,
@@ -51,15 +61,15 @@ def import_session(
     paths: CodexPaths,
     input_value: str,
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     source_group: str = "all",
     machine_filter: str = "",
     export_group_filter: str = "",
     desktop_visible: bool = False,
-    create_missing_workspace: Optional[bool] = None,
+    create_missing_workspace: bool | None = None,
     session_cwd_override: str = "",
     skills_mode: str = "best-effort",
-    skills_restore_report_path: Optional[Path] = None,
+    skills_restore_report_path: Path | None = None,
     pin_sidebar_workspace: bool = True,
 ) -> ImportResult:
     bundle_dir, resolved_from_session_id = _resolve_import_bundle_dir(
@@ -370,7 +380,7 @@ def _resolve_import_bundle_dir(
     paths: CodexPaths,
     input_value: str,
     *,
-    bundle_root: Optional[Path],
+    bundle_root: Path | None,
     source_group: str,
     machine_filter: str,
     export_group_filter: str,
@@ -404,7 +414,7 @@ def _target_relative_path_for_import(relative_path: str, *, desktop_visible: boo
 def import_desktop_all(
     paths: CodexPaths,
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     machine_filter: str = "",
     export_group_filter: str = "",
     project_filter: str = "",
@@ -412,7 +422,7 @@ def import_desktop_all(
     latest_only: bool = False,
     include_subagents: bool = False,
     desktop_visible: bool = False,
-    create_missing_workspace: Optional[bool] = None,
+    create_missing_workspace: bool | None = None,
     skills_mode: str = "best-effort",
 ) -> BatchImportResult:
     plan = build_batch_import_plan(
@@ -439,7 +449,7 @@ def import_selected_bundles(
     paths: CodexPaths,
     input_values: list[str] | tuple[str, ...],
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     source_group: str = "all",
     machine_filter: str = "",
     export_group_filter: str = "",
@@ -448,7 +458,7 @@ def import_selected_bundles(
     latest_only: bool = False,
     include_subagents: bool = False,
     desktop_visible: bool = False,
-    create_missing_workspace: Optional[bool] = None,
+    create_missing_workspace: bool | None = None,
     skills_mode: str = "best-effort",
 ) -> BatchImportResult:
     plan = build_selected_import_plan(
@@ -478,7 +488,7 @@ def _execute_batch_import_plan(
     plan,
     *,
     desktop_visible: bool,
-    create_missing_workspace: Optional[bool],
+    create_missing_workspace: bool | None,
     skills_mode: str,
 ) -> BatchImportResult:
     if create_missing_workspace is None:

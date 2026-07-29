@@ -2,13 +2,12 @@ import os
 import unittest
 from pathlib import Path
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in os.sys.path:
     os.sys.path.insert(0, str(SRC_DIR))
 
-from codex_session_toolkit.tui.navigation_state import (  # noqa: E402
+from codex_session_toolkit.tui.navigation_state import (
     apply_home_key,
     apply_list_key,
     apply_picker_key,

@@ -19,8 +19,8 @@ from ..presenters.reports import (
     print_github_pull_result,
     print_github_sync_result,
     print_import_result,
-    print_migrated_original_session_delete_result,
     print_local_skill_rows,
+    print_migrated_original_session_delete_result,
     print_repair_result,
     print_session_backup_delete_result,
     print_session_backup_restore_result,
@@ -35,9 +35,22 @@ from ..presenters.reports import (
     print_validation_report,
 )
 from ..services.archived_sessions import delete_archived_sessions
-from ..services.backups import delete_session_backup, list_session_backups, restore_session_backup
-from ..services.browse import get_bundle_summaries, get_project_session_summaries, get_session_summaries, validate_bundles
-from ..services.clone import cleanup_clones, clone_to_provider, delete_migrated_original_sessions
+from ..services.backups import (
+    delete_session_backup,
+    list_session_backups,
+    restore_session_backup,
+)
+from ..services.browse import (
+    get_bundle_summaries,
+    get_project_session_summaries,
+    get_session_summaries,
+    validate_bundles,
+)
+from ..services.clone import (
+    cleanup_clones,
+    clone_to_provider,
+    delete_migrated_original_sessions,
+)
 from ..services.exporting import (
     export_active_desktop_all,
     export_cli_all,
@@ -46,8 +59,17 @@ from ..services.exporting import (
     export_selected_sessions,
     export_session,
 )
-from ..services.importing import import_desktop_all, import_selected_bundles, import_session
-from ..services.github_sync import configure_github_proxy, connect_bundles_to_github, pull_bundles_from_github, sync_bundles_to_github
+from ..services.github_sync import (
+    configure_github_proxy,
+    connect_bundles_to_github,
+    pull_bundles_from_github,
+    sync_bundles_to_github,
+)
+from ..services.importing import (
+    import_desktop_all,
+    import_selected_bundles,
+    import_session,
+)
 from ..services.repair import repair_desktop
 from ..services.session_deletion import delete_sessions
 from ..services.skills_transfer import (
@@ -59,7 +81,6 @@ from ..services.skills_transfer import (
     list_local_skills,
     list_skill_bundles,
 )
-
 
 CommandHandler = Callable[[argparse.Namespace, CodexPaths], int]
 
@@ -300,11 +321,11 @@ def _handle_connect_github(args: argparse.Namespace, paths: CodexPaths) -> int:
         return exit_code
 
     if args.dry_run and result.initialized_repo:
-        print("")
+        print()
         print("Initial push preview skipped: bundle repo is not connected yet in dry-run mode.")
         return exit_code
 
-    print("")
+    print()
     print("Initial push after connect:")
     push_exit_code = print_github_sync_result(
         sync_bundles_to_github(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Sequence
+from typing import TYPE_CHECKING, Callable, Sequence
 
 from .maintenance_modes import run_cleanup_mode, run_clone_mode
 from .progress_flows import run_callable_with_progress, run_cli_args_with_progress
@@ -13,8 +13,7 @@ from .terminal import Ansi, render_box, style_text
 
 if TYPE_CHECKING:
     from .app import ToolkitTuiApp
-    from .view_models import BatchBundleImportSelection
-    from .view_models import TuiMenuAction
+    from .view_models import BatchBundleImportSelection, TuiMenuAction
 
 
 @dataclass(frozen=True)
@@ -44,7 +43,7 @@ def build_delete_archived_sessions_cli_args(*, dry_run: bool) -> list[str]:
 
 
 def build_bundle_import_cli_args(
-    selection: "BatchBundleImportSelection",
+    selection: BatchBundleImportSelection,
     *,
     create_missing_workspace: bool,
     include_subagents: bool = False,
@@ -66,7 +65,7 @@ def build_bundle_import_cli_args(
     return args
 
 
-def _github_status_snapshot_with_progress(app: "ToolkitTuiApp", *, title: str):
+def _github_status_snapshot_with_progress(app: ToolkitTuiApp, *, title: str):
     return run_callable_with_progress(
         app,
         title=title,
@@ -79,7 +78,7 @@ def _github_status_snapshot_with_progress(app: "ToolkitTuiApp", *, title: str):
 
 
 def _user_action_progress_lines(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     action_name: str,
     cli_args: Sequence[str],
@@ -102,7 +101,7 @@ def _user_action_progress_lines(
     ]
 
 
-def _collect_github_connect_selection(app: "ToolkitTuiApp") -> Optional[GitHubConnectSelection]:
+def _collect_github_connect_selection(app: ToolkitTuiApp) -> GitHubConnectSelection | None:
     status = _github_status_snapshot_with_progress(app, title="连接独立 GitHub 仓库")
     status_lines = app._github_sync_status_lines(status)
     if status.remote_url and not status.uses_project_source_remote:
@@ -171,7 +170,7 @@ def _build_github_connect_request(selection: GitHubConnectSelection, *, dry_run:
     return action_name, args
 
 
-def _collect_github_proxy_request(app: "ToolkitTuiApp") -> tuple[Optional[str], Optional[list[str]]]:
+def _collect_github_proxy_request(app: ToolkitTuiApp) -> tuple[str | None, list[str] | None]:
     status = _github_status_snapshot_with_progress(app, title="连接/断开代理")
     status_lines = app._github_sync_status_lines(status)
     if status.proxy_enabled:
@@ -215,7 +214,7 @@ def _collect_github_proxy_request(app: "ToolkitTuiApp") -> tuple[Optional[str], 
     return "连接 GitHub 同步代理", ["github-proxy", proxy_url]
 
 
-def _github_connected_status_or_none(app: "ToolkitTuiApp", *, title: str):
+def _github_connected_status_or_none(app: ToolkitTuiApp, *, title: str):
     status = _github_status_snapshot_with_progress(app, title=title)
     status_lines = app._github_sync_status_lines(status)
     if not status.is_connected:
@@ -228,7 +227,7 @@ def _github_connected_status_or_none(app: "ToolkitTuiApp", *, title: str):
     return status
 
 
-def _prompt_github_pull_dry_run(app: "ToolkitTuiApp", status) -> Optional[bool]:
+def _prompt_github_pull_dry_run(app: ToolkitTuiApp, status) -> bool | None:
     branch = status.branch or "main"
     summary_lines = app._github_sync_status_lines(status) + [
         "",
@@ -265,7 +264,7 @@ def _build_github_pull_request(status, *, dry_run: bool) -> tuple[str, list[str]
     return action_name, args
 
 
-def _prompt_github_push_dry_run(app: "ToolkitTuiApp", status) -> Optional[bool]:
+def _prompt_github_push_dry_run(app: ToolkitTuiApp, status) -> bool | None:
     branch = status.branch or "main"
     summary_lines = [
         f"{style_text('推送目标', Ansi.DIM)} : {status.remote_name}/{branch}",
@@ -302,7 +301,7 @@ def _build_github_push_request(status, *, dry_run: bool) -> tuple[str, list[str]
     return action_name, args
 
 
-def resolve_menu_action_request(app: "ToolkitTuiApp", menu_action: "TuiMenuAction") -> tuple[Optional[str], Optional[list[str]]]:
+def resolve_menu_action_request(app: ToolkitTuiApp, menu_action: TuiMenuAction) -> tuple[str | None, list[str] | None]:
     action_name = menu_action.label
     cli_args = list(getattr(menu_action, "cli_args", ()))
 
@@ -440,7 +439,7 @@ def resolve_menu_action_request(app: "ToolkitTuiApp", menu_action: "TuiMenuActio
     return action_name, cli_args
 
 
-def execute_menu_action(app: "ToolkitTuiApp", chosen_action: "TuiMenuAction") -> None:
+def execute_menu_action(app: ToolkitTuiApp, chosen_action: TuiMenuAction) -> None:
     choice_id = chosen_action.action_id
     if choice_id == "provider_migration":
         while True:
@@ -643,20 +642,20 @@ def execute_menu_action(app: "ToolkitTuiApp", chosen_action: "TuiMenuAction") ->
 
 
 def run_action(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     action_name: str,
     cli_args: Sequence[str],
     *,
     dry_run: bool,
     runner: Callable[[], int],
     danger: bool,
-    preview_cmd: Optional[str] = None,
+    preview_cmd: str | None = None,
     use_progress: bool = False,
 ) -> None:
     box_width = app._print_branded_header("执行中…")
     color = Ansi.RED if danger and not dry_run else Ansi.YELLOW if dry_run else Ansi.CYAN
     print(style_text(f"▶ {action_name}", Ansi.BOLD, color))
-    print("")
+    print()
 
     info_lines = [
         f"{style_text('执行方式', Ansi.DIM)}  : 直接在 TUI 中执行",
@@ -683,7 +682,7 @@ def run_action(
     )
     for line in render_box(display_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
         print(line)
-    print("")
+    print()
 
     if use_progress:
         progress_result = run_cli_args_with_progress(
@@ -694,15 +693,15 @@ def run_action(
         )
         box_width = app._print_branded_header("执行结果")
         print(style_text(f"▶ {action_name}", Ansi.BOLD, color))
-        print("")
+        print()
         for line in render_box(display_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
             print(line)
-        print("")
+        print()
         if progress_result.stdout.strip():
             print(progress_result.stdout.rstrip())
         if progress_result.stderr.strip():
             if progress_result.stdout.strip():
-                print("")
+                print()
             print(style_text("错误输出：", Ansi.BOLD, Ansi.YELLOW))
             print(progress_result.stderr.rstrip())
         result = progress_result.return_code

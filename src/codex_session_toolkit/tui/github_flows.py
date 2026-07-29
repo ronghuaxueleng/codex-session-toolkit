@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING
 
 from ..models import GitHubSyncStatus
 from ..services.github_sync import get_github_sync_status
@@ -13,14 +13,14 @@ if TYPE_CHECKING:
     from .app import ToolkitTuiApp
 
 
-def github_sync_status(app: "ToolkitTuiApp", *, check_remote: bool = False) -> GitHubSyncStatus:
+def github_sync_status(app: ToolkitTuiApp, *, check_remote: bool = False) -> GitHubSyncStatus:
     return get_github_sync_status(app.paths, check_remote=check_remote)
 
 
 def github_sync_status_lines(
-    app: "ToolkitTuiApp",
-    status: Optional[GitHubSyncStatus] = None,
-) -> List[str]:
+    app: ToolkitTuiApp,
+    status: GitHubSyncStatus | None = None,
+) -> list[str]:
     status = status or github_sync_status(app)
     if status.is_connected:
         state = style_text("已连接独立仓库", Ansi.BOLD, Ansi.GREEN)
@@ -75,7 +75,7 @@ def github_sync_status_lines(
     return lines
 
 
-def show_github_sync_status(app: "ToolkitTuiApp") -> None:
+def show_github_sync_status(app: ToolkitTuiApp) -> None:
     local_status = github_sync_status(app, check_remote=False)
     if local_status.is_connected:
         status = _github_remote_status_with_progress(app, local_status, title="GitHub 同步状态")
@@ -89,7 +89,7 @@ def show_github_sync_status(app: "ToolkitTuiApp") -> None:
 
 
 def _github_remote_status_with_progress(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     local_status: GitHubSyncStatus,
     *,
     title: str,

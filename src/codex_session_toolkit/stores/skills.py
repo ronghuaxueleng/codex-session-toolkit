@@ -7,7 +7,6 @@ import json
 import re
 import shutil
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from ..errors import ToolkitError
 from ..models import LocalSkillSummary, OperationWarning
@@ -21,10 +20,12 @@ from .skills_manifest import (
     SkillsManifest,
     SkillsRestoreOutcome,
     deduplicate_skill_manifests,
-    is_safe_relative_posix_path as _is_safe_relative_posix_path,
     read_skills_manifest,
     write_batch_skills_restore_report,
     write_skills_manifest,
+)
+from .skills_manifest import (
+    is_safe_relative_posix_path as _is_safe_relative_posix_path,
 )
 
 SKILL_MD_NAME = "SKILL.md"
@@ -61,7 +62,7 @@ __all__ = [
 ]
 
 
-def infer_skill_source_root(skill_file_path: str) -> Tuple[str, str]:
+def infer_skill_source_root(skill_file_path: str) -> tuple[str, str]:
     normalized_path = (skill_file_path or "").replace("\\", "/")
     if _AGENTS_MARKER in normalized_path:
         idx = normalized_path.index(_AGENTS_MARKER) + len(_AGENTS_MARKER)
@@ -475,7 +476,7 @@ def _extract_skills_block(session_file: Path) -> str:
     return ""
 
 
-def _parse_available_skills(block: str) -> List[Tuple[str, str, str]]:
+def _parse_available_skills(block: str) -> list[tuple[str, str, str]]:
     results: list[tuple[str, str, str]] = []
     for line in block.splitlines():
         m = _SKILL_LINE_RE.match(line.strip())
@@ -484,12 +485,12 @@ def _parse_available_skills(block: str) -> List[Tuple[str, str, str]]:
     return results
 
 
-def _detect_skill_usage(session_file: Path, skill_names: List[str]) -> Dict[str, int]:
+def _detect_skill_usage(session_file: Path, skill_names: list[str]) -> dict[str, int]:
     import json as _json
 
     if not skill_names:
         return {}
-    counts: Dict[str, int] = {name: 0 for name in skill_names}
+    counts: dict[str, int] = {name: 0 for name in skill_names}
     skill_patterns = {
         name: re.compile(
             r"(?:"
@@ -533,9 +534,7 @@ def _detect_skill_usage(session_file: Path, skill_names: List[str]) -> Dict[str,
                 continue
 
             for name in skill_names:
-                if skill_patterns[name].search(text_to_check):
-                    counts[name] += 1
-                elif skill_file_patterns[name].search(text_to_check):
+                if skill_patterns[name].search(text_to_check) or skill_file_patterns[name].search(text_to_check):
                     counts[name] += 1
 
     return counts
@@ -557,7 +556,7 @@ def _extract_text_from_content(content: object) -> str:
     return ""
 
 
-def _resolve_skill_source_dir(skill: SkillDescriptor) -> Optional[Path]:
+def _resolve_skill_source_dir(skill: SkillDescriptor) -> Path | None:
     path = Path(skill.skill_file)
     if path.is_file():
         return path.parent
@@ -567,7 +566,7 @@ def _resolve_skill_source_dir(skill: SkillDescriptor) -> Optional[Path]:
     return None
 
 
-def _first_existing_local_skill_dir(target_home: Path, skill: SkillDescriptor) -> Optional[Path]:
+def _first_existing_local_skill_dir(target_home: Path, skill: SkillDescriptor) -> Path | None:
     for skill_dir in _candidate_local_skill_dirs(target_home, skill):
         if skill_dir.is_dir():
             return skill_dir
@@ -643,7 +642,7 @@ def _failed_restore_result(skill: SkillDescriptor, target_dir: Path) -> SkillRes
 def _validate_bundled_skill_source(
     skill: SkillDescriptor,
     source_dir: Path,
-) -> Optional[OperationWarning]:
+) -> OperationWarning | None:
     if not source_dir.exists():
         detail = "bundled skill directory missing"
     elif not source_dir.is_dir():

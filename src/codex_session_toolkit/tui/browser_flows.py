@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from ..errors import ToolkitError
 from ..services.backups import list_session_backups
@@ -12,7 +12,12 @@ from ..services.browse import get_project_session_summaries, get_session_summari
 from ..services.bundle_management import delete_bundle_summaries
 from ..services.clone import list_migrated_original_sessions
 from ..services.skills_transfer import list_local_skills, list_skill_bundles
-from ..support import default_local_project_target, detect_machine_key, project_label_from_path, project_label_to_key
+from ..support import (
+    default_local_project_target,
+    detect_machine_key,
+    project_label_from_path,
+    project_label_to_key,
+)
 from .action_flows import build_bundle_import_cli_args
 from .navigation_state import (
     apply_list_key,
@@ -20,16 +25,31 @@ from .navigation_state import (
     cycle_option_key,
     selection_window,
 )
-from .terminal import Ansi, align_line, app_logo_lines, ellipsize_middle, glyphs, render_box, style_text
+from .terminal import (
+    Ansi,
+    align_line,
+    app_logo_lines,
+    ellipsize_middle,
+    glyphs,
+    render_box,
+    style_text,
+)
 from .terminal_io import read_key
 
 if TYPE_CHECKING:
-    from ..models import BundleSummary, LocalSkillSummary, MigratedOriginalSessionSummary, SessionBackupSummary, SessionSummary, SkillBundleSummary
+    from ..models import (
+        BundleSummary,
+        LocalSkillSummary,
+        MigratedOriginalSessionSummary,
+        SessionBackupSummary,
+        SessionSummary,
+        SkillBundleSummary,
+    )
     from .app import ToolkitTuiApp
 
 
 def render_browser_frame(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
     subtitle: str,
@@ -48,12 +68,10 @@ def render_browser_frame(
         output_lines.append(align_line(style_text(subtitle, Ansi.DIM), box_width, center=center))
     output_lines.append("")
 
-    for line in render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
-        output_lines.append(line)
+    output_lines.extend(render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)))
     output_lines.append("")
 
-    for line in render_box(list_lines, width=box_width, border_codes=list_border_codes):
-        output_lines.append(line)
+    output_lines.extend(render_box(list_lines, width=box_width, border_codes=list_border_codes))
 
     hide_cursor = "\033[?25l"
     show_cursor = "\033[?25h"
@@ -66,7 +84,7 @@ def render_browser_frame(
     sys.stdout.flush()
 
 
-def open_project_session_browser(app: "ToolkitTuiApp") -> None:
+def open_project_session_browser(app: ToolkitTuiApp) -> None:
     project_path = app._prompt_project_path(default=str(Path.cwd()))
     if not project_path:
         return
@@ -75,7 +93,7 @@ def open_project_session_browser(app: "ToolkitTuiApp") -> None:
     selected_index = 0
     selected_session_ids: set[str] = set()
     pointer = glyphs().get("pointer", ">")
-    entries: list["SessionSummary"] = []
+    entries: list[SessionSummary] = []
     needs_reload = True
 
     while True:
@@ -218,12 +236,12 @@ def open_project_session_browser(app: "ToolkitTuiApp") -> None:
             continue
 
 
-def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["SessionSummary"]:
+def open_session_browser(app: ToolkitTuiApp, *, mode: str) -> SessionSummary | None:
     filter_text = ""
     selected_index = 0
     selected_session_keys: set[str] = set()
     pointer = glyphs().get("pointer", ">")
-    entries: list["SessionSummary"] = []
+    entries: list[SessionSummary] = []
     needs_reload = True
 
     while True:
@@ -376,13 +394,13 @@ def open_session_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["Sessio
             continue
 
 
-def _session_selection_key(summary: "SessionSummary") -> str:
+def _session_selection_key(summary: SessionSummary) -> str:
     return str(summary.path)
 
 
 def _toggle_selected_session(
     selected_keys: set[str],
-    summary: "SessionSummary",
+    summary: SessionSummary,
     *,
     key_fn=lambda summary: summary.session_id,
 ) -> None:
@@ -394,12 +412,12 @@ def _toggle_selected_session(
 
 
 def _selected_or_current_sessions(
-    entries: list["SessionSummary"],
+    entries: list[SessionSummary],
     selected_index: int,
     selected_keys: set[str],
     *,
     key_fn=lambda summary: summary.session_id,
-) -> list["SessionSummary"]:
+) -> list[SessionSummary]:
     selected_entries = [
         entry
         for entry in entries
@@ -411,11 +429,11 @@ def _selected_or_current_sessions(
 
 
 def _all_session_entries_for_current_filter(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     filter_text: str,
     archived_only: bool = False,
-) -> list["SessionSummary"]:
+) -> list[SessionSummary]:
     try:
         return get_session_summaries(
             app.paths,
@@ -429,11 +447,11 @@ def _all_session_entries_for_current_filter(
 
 
 def _all_project_session_entries_for_current_filter(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     project_path: str,
     filter_text: str,
-) -> list["SessionSummary"]:
+) -> list[SessionSummary]:
     try:
         return get_project_session_summaries(
             app.paths,
@@ -447,9 +465,9 @@ def _all_project_session_entries_for_current_filter(
 
 
 def _select_matching_sessions(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     selected_keys: set[str],
-    entries: list["SessionSummary"],
+    entries: list[SessionSummary],
     *,
     empty_title: str,
     key_fn=lambda summary: summary.session_id,
@@ -465,7 +483,7 @@ def _select_matching_sessions(
         selected_keys.add(key_fn(entry))
 
 
-def _run_selected_session_export(app: "ToolkitTuiApp", summaries: list["SessionSummary"]) -> None:
+def _run_selected_session_export(app: ToolkitTuiApp, summaries: list[SessionSummary]) -> None:
     if not summaries:
         app._show_detail_panel(
             "导出会话",
@@ -490,7 +508,7 @@ def _run_selected_session_export(app: "ToolkitTuiApp", summaries: list["SessionS
     )
 
 
-def _run_selected_session_delete(app: "ToolkitTuiApp", summaries: list["SessionSummary"]) -> None:
+def _run_selected_session_delete(app: ToolkitTuiApp, summaries: list[SessionSummary]) -> None:
     if not summaries:
         app._show_detail_panel(
             "删除会话",
@@ -523,12 +541,12 @@ def _run_selected_session_delete(app: "ToolkitTuiApp", summaries: list["SessionS
     )
 
 
-def open_archived_session_browser(app: "ToolkitTuiApp") -> None:
+def open_archived_session_browser(app: ToolkitTuiApp) -> None:
     filter_text = ""
     selected_index = 0
     selected_session_ids: set[str] = set()
     pointer = glyphs().get("pointer", ">")
-    entries: list["SessionSummary"] = []
+    entries: list[SessionSummary] = []
     needs_reload = True
 
     while True:
@@ -694,12 +712,12 @@ def open_archived_session_browser(app: "ToolkitTuiApp") -> None:
             continue
 
 
-def open_migrated_original_session_browser(app: "ToolkitTuiApp") -> None:
+def open_migrated_original_session_browser(app: ToolkitTuiApp) -> None:
     filter_text = ""
     selected_index = 0
     selected_session_ids: set[str] = set()
     pointer = glyphs().get("pointer", ">")
-    entries: list["MigratedOriginalSessionSummary"] = []
+    entries: list[MigratedOriginalSessionSummary] = []
     needs_reload = True
 
     while True:
@@ -862,9 +880,9 @@ def open_migrated_original_session_browser(app: "ToolkitTuiApp") -> None:
 
 
 def _migrated_original_entries_for_filter(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     filter_text: str,
-) -> list["MigratedOriginalSessionSummary"]:
+) -> list[MigratedOriginalSessionSummary]:
     entries = list_migrated_original_sessions(app.paths, target_provider=app.context.target_provider)
     needle = filter_text.strip()
     if not needle:
@@ -889,7 +907,7 @@ def _migrated_original_entries_for_filter(
     ]
 
 
-def _migrated_original_preview_lines(summary: "MigratedOriginalSessionSummary") -> list[str]:
+def _migrated_original_preview_lines(summary: MigratedOriginalSessionSummary) -> list[str]:
     return [
         f"{style_text('会话预览', Ansi.DIM)} : {summary.preview or '（无）'}",
         f"{style_text('旧 Session ID', Ansi.DIM)} : {summary.session_id}",
@@ -903,7 +921,7 @@ def _migrated_original_preview_lines(summary: "MigratedOriginalSessionSummary") 
     ]
 
 
-def _archived_session_preview_lines(summary: "SessionSummary") -> list[str]:
+def _archived_session_preview_lines(summary: SessionSummary) -> list[str]:
     return [
         f"{style_text('会话名称', Ansi.DIM)} : {summary.thread_name or '（未命名）'}",
         f"{style_text('会话预览', Ansi.DIM)} : {summary.preview or '（无）'}",
@@ -915,11 +933,11 @@ def _archived_session_preview_lines(summary: "SessionSummary") -> list[str]:
     ]
 
 
-def open_session_backup_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["SessionBackupSummary"]:
+def open_session_backup_browser(app: ToolkitTuiApp, *, mode: str) -> SessionBackupSummary | None:
     filter_text = ""
     selected_index = 0
     pointer = glyphs().get("pointer", ">")
-    entries: list["SessionBackupSummary"] = []
+    entries: list[SessionBackupSummary] = []
     needs_reload = True
 
     while True:
@@ -1067,7 +1085,7 @@ def open_session_backup_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional[
             continue
 
 
-def open_bundle_browser(app: "ToolkitTuiApp", *, mode: str, source_group: str = "all") -> Optional["BundleSummary"]:
+def open_bundle_browser(app: ToolkitTuiApp, *, mode: str, source_group: str = "all") -> BundleSummary | None:
     browse_mode = mode in {"view", "browse"}
     import_mode = mode == "import"
     filter_text = ""
@@ -1078,7 +1096,7 @@ def open_bundle_browser(app: "ToolkitTuiApp", *, mode: str, source_group: str = 
     selected_bundle_dirs: set[str] = set()
     pointer = glyphs().get("pointer", ">")
     snapshot = None
-    entries: list["BundleSummary"] = []
+    entries: list[BundleSummary] = []
     needs_reload = True
 
     while True:
@@ -1258,14 +1276,14 @@ def open_bundle_browser(app: "ToolkitTuiApp", *, mode: str, source_group: str = 
             selected_bundle_dirs.clear()
             continue
 
-def _bundle_dir_key(bundle: "BundleSummary") -> str:
+def _bundle_dir_key(bundle: BundleSummary) -> str:
     try:
         return str(bundle.bundle_dir.resolve())
     except OSError:
         return str(bundle.bundle_dir.expanduser())
 
 
-def _bundle_import_source_label(app: "ToolkitTuiApp", bundle: "BundleSummary") -> str:
+def _bundle_import_source_label(app: ToolkitTuiApp, bundle: BundleSummary) -> str:
     bundle_dir = bundle.bundle_dir.expanduser()
     local_workspace = getattr(app.paths, "local_bundle_workspace", None)
     legacy_workspace = getattr(app.paths, "legacy_session_bundle_workspace", None)
@@ -1286,7 +1304,7 @@ def _bundle_import_source_label(app: "ToolkitTuiApp", bundle: "BundleSummary") -
     }.get(bundle.source_group, bundle.source_group or "未知来源")
 
 
-def _bundle_relative_import_path(app: "ToolkitTuiApp", bundle: "BundleSummary") -> str:
+def _bundle_relative_import_path(app: ToolkitTuiApp, bundle: BundleSummary) -> str:
     bundle_dir = bundle.bundle_dir.expanduser()
     root_attrs = [
         ("codex_bundles", "local_bundle_workspace"),
@@ -1315,14 +1333,14 @@ def _path_is_relative_to(path: Path, root: Path) -> bool:
 
 
 def _all_bundle_entries_for_current_filters(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     filter_text: str,
     machine_filter: str,
     export_group_filter: str,
     latest_only: bool,
     source_group: str,
-) -> list["BundleSummary"]:
+) -> list[BundleSummary]:
     try:
         snapshot, _, _ = app._bundle_browser_snapshot(
             filter_text=filter_text,
@@ -1338,7 +1356,7 @@ def _all_bundle_entries_for_current_filters(
     return list(snapshot.entries)
 
 
-def _toggle_selected_bundle(selected_bundle_dirs: set[str], bundle: "BundleSummary") -> None:
+def _toggle_selected_bundle(selected_bundle_dirs: set[str], bundle: BundleSummary) -> None:
     bundle_key = _bundle_dir_key(bundle)
     if bundle_key in selected_bundle_dirs:
         selected_bundle_dirs.remove(bundle_key)
@@ -1347,10 +1365,10 @@ def _toggle_selected_bundle(selected_bundle_dirs: set[str], bundle: "BundleSumma
 
 
 def _selected_or_current_bundles(
-    entries: list["BundleSummary"],
+    entries: list[BundleSummary],
     selected_index: int,
     selected_bundle_dirs: set[str],
-) -> list["BundleSummary"]:
+) -> list[BundleSummary]:
     selected_entries = [
         entry
         for entry in entries
@@ -1362,9 +1380,9 @@ def _selected_or_current_bundles(
 
 
 def _select_matching_bundles(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     selected_bundle_dirs: set[str],
-    entries: list["BundleSummary"],
+    entries: list[BundleSummary],
 ) -> None:
     if not entries:
         app._show_detail_panel(
@@ -1377,7 +1395,7 @@ def _select_matching_bundles(
         selected_bundle_dirs.add(_bundle_dir_key(entry))
 
 
-def _delete_selected_bundles(app: "ToolkitTuiApp", bundles: list["BundleSummary"]) -> bool:
+def _delete_selected_bundles(app: ToolkitTuiApp, bundles: list[BundleSummary]) -> bool:
     if not bundles:
         app._show_detail_panel(
             "删除 Bundle",
@@ -1414,8 +1432,8 @@ def _delete_selected_bundles(app: "ToolkitTuiApp", bundles: list["BundleSummary"
 
 
 def _run_bundle_import(
-    app: "ToolkitTuiApp",
-    bundles: list["BundleSummary"],
+    app: ToolkitTuiApp,
+    bundles: list[BundleSummary],
 ) -> None:
     if not bundles:
         app._show_detail_panel(
@@ -1473,7 +1491,7 @@ def _run_bundle_import(
     )
 
 
-def _prompt_bundle_import_target_project(app: "ToolkitTuiApp", bundles: list["BundleSummary"]) -> Optional[str]:
+def _prompt_bundle_import_target_project(app: ToolkitTuiApp, bundles: list[BundleSummary]) -> str | None:
     project_bundles = [bundle for bundle in bundles if bundle.export_group == "project"]
     if not project_bundles:
         return ""
@@ -1515,16 +1533,16 @@ def _prompt_bundle_import_target_project(app: "ToolkitTuiApp", bundles: list["Bu
     return target_project_path or None
 
 
-def _common_project_key(bundles: list["BundleSummary"]) -> str:
+def _common_project_key(bundles: list[BundleSummary]) -> str:
     return next((bundle.project_key for bundle in bundles if bundle.project_key), "")
 
 
-def _common_project_label(bundles: list["BundleSummary"]) -> str:
+def _common_project_label(bundles: list[BundleSummary]) -> str:
     return next((bundle.project_label for bundle in bundles if bundle.project_label), _common_project_key(bundles) or "project")
 
 
 def _bundle_import_selection(
-    bundles: list["BundleSummary"],
+    bundles: list[BundleSummary],
     *,
     project_filter: str = "",
     target_project_path: str = "",
@@ -1545,22 +1563,22 @@ def _bundle_import_selection(
     )
 
 
-def _common_machine_key(bundles: list["BundleSummary"]) -> str:
+def _common_machine_key(bundles: list[BundleSummary]) -> str:
     keys = {bundle.source_machine_key for bundle in bundles if bundle.source_machine_key}
     return next(iter(keys)) if len(keys) == 1 else ""
 
 
-def _common_machine_label(bundles: list["BundleSummary"]) -> str:
+def _common_machine_label(bundles: list[BundleSummary]) -> str:
     labels = {bundle.source_machine for bundle in bundles if bundle.source_machine}
     return next(iter(labels)) if len(labels) == 1 else ""
 
 
-def _common_export_group(bundles: list["BundleSummary"]) -> str:
+def _common_export_group(bundles: list[BundleSummary]) -> str:
     groups = {bundle.export_group for bundle in bundles if bundle.export_group}
     return next(iter(groups)) if len(groups) == 1 else ""
 
 
-def _common_export_group_label(bundles: list["BundleSummary"]) -> str:
+def _common_export_group_label(bundles: list[BundleSummary]) -> str:
     labels = {bundle.export_group_label for bundle in bundles if bundle.export_group_label}
     return next(iter(labels)) if len(labels) == 1 else ""
 
@@ -1573,7 +1591,7 @@ def _format_size(size_bytes: int) -> str:
     return f"{size_bytes / 1024 / 1024:.1f} MB"
 
 
-def open_local_skill_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["LocalSkillSummary"]:
+def open_local_skill_browser(app: ToolkitTuiApp, *, mode: str) -> LocalSkillSummary | None:
     filter_text = ""
     selected_index = 0
     include_system = False
@@ -1773,7 +1791,7 @@ def open_local_skill_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["Lo
             continue
 
 
-def _toggle_selected_skill(selected_skills: set[tuple[str, str]], skill: "LocalSkillSummary") -> None:
+def _toggle_selected_skill(selected_skills: set[tuple[str, str]], skill: LocalSkillSummary) -> None:
     key = (skill.source_root, skill.relative_dir)
     if key in selected_skills:
         selected_skills.remove(key)
@@ -1782,10 +1800,10 @@ def _toggle_selected_skill(selected_skills: set[tuple[str, str]], skill: "LocalS
 
 
 def _selected_or_current_skills(
-    entries: list["LocalSkillSummary"],
+    entries: list[LocalSkillSummary],
     selected_index: int,
     selected_skills: set[tuple[str, str]],
-) -> list["LocalSkillSummary"]:
+) -> list[LocalSkillSummary]:
     selected_entries = [
         entry
         for entry in entries
@@ -1799,11 +1817,11 @@ def _selected_or_current_skills(
 
 
 def _all_local_skill_entries_for_current_filter(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     filter_text: str,
     include_system: bool,
-) -> list["LocalSkillSummary"]:
+) -> list[LocalSkillSummary]:
     try:
         return list_local_skills(
             app.paths,
@@ -1816,9 +1834,9 @@ def _all_local_skill_entries_for_current_filter(
 
 
 def _select_matching_skills(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     selected_skills: set[tuple[str, str]],
-    entries: list["LocalSkillSummary"],
+    entries: list[LocalSkillSummary],
 ) -> None:
     custom_entries = [entry for entry in entries if entry.location_kind == "custom"]
     if not custom_entries:
@@ -1833,8 +1851,8 @@ def _select_matching_skills(
 
 
 def _run_skill_export(
-    app: "ToolkitTuiApp",
-    skills: list["LocalSkillSummary"],
+    app: ToolkitTuiApp,
+    skills: list[LocalSkillSummary],
 ) -> None:
     cli_args = ["export-skills", *[str(skill.skill_dir) for skill in skills]]
     count = len(skills)
@@ -1851,7 +1869,7 @@ def _run_skill_export(
     )
 
 
-def _confirm_and_delete_skills(app: "ToolkitTuiApp", skills: list["LocalSkillSummary"]) -> None:
+def _confirm_and_delete_skills(app: ToolkitTuiApp, skills: list[LocalSkillSummary]) -> None:
     count = len(skills)
     cli_args = ["delete-skill"]
     for skill in skills:
@@ -1879,7 +1897,7 @@ def _confirm_and_delete_skills(app: "ToolkitTuiApp", skills: list["LocalSkillSum
     )
 
 
-def open_skill_bundle_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["SkillBundleSummary"]:
+def open_skill_bundle_browser(app: ToolkitTuiApp, *, mode: str) -> SkillBundleSummary | None:
     filter_text = ""
     selected_index = 0
     selected_bundle_dirs: set[str] = set()
@@ -2016,14 +2034,14 @@ def open_skill_bundle_browser(app: "ToolkitTuiApp", *, mode: str) -> Optional["S
             continue
 
 
-def _skill_bundle_dir_key(bundle: "SkillBundleSummary") -> str:
+def _skill_bundle_dir_key(bundle: SkillBundleSummary) -> str:
     try:
         return str(bundle.bundle_dir.resolve())
     except OSError:
         return str(bundle.bundle_dir.expanduser())
 
 
-def _toggle_selected_skill_bundle(selected_bundle_dirs: set[str], bundle: "SkillBundleSummary") -> None:
+def _toggle_selected_skill_bundle(selected_bundle_dirs: set[str], bundle: SkillBundleSummary) -> None:
     bundle_key = _skill_bundle_dir_key(bundle)
     if bundle_key in selected_bundle_dirs:
         selected_bundle_dirs.remove(bundle_key)
@@ -2032,10 +2050,10 @@ def _toggle_selected_skill_bundle(selected_bundle_dirs: set[str], bundle: "Skill
 
 
 def _selected_or_current_skill_bundles(
-    entries: list["SkillBundleSummary"],
+    entries: list[SkillBundleSummary],
     selected_index: int,
     selected_bundle_dirs: set[str],
-) -> list["SkillBundleSummary"]:
+) -> list[SkillBundleSummary]:
     selected_entries = [
         entry
         for entry in entries
@@ -2047,10 +2065,10 @@ def _selected_or_current_skill_bundles(
 
 
 def _all_skill_bundle_entries_for_current_filter(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     filter_text: str,
-) -> list["SkillBundleSummary"]:
+) -> list[SkillBundleSummary]:
     try:
         return list_skill_bundles(app.paths, pattern=filter_text)
     except ToolkitError as exc:
@@ -2059,9 +2077,9 @@ def _all_skill_bundle_entries_for_current_filter(
 
 
 def _select_matching_skill_bundles(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     selected_bundle_dirs: set[str],
-    entries: list["SkillBundleSummary"],
+    entries: list[SkillBundleSummary],
 ) -> None:
     if not entries:
         app._show_detail_panel(
@@ -2075,8 +2093,8 @@ def _select_matching_skill_bundles(
 
 
 def _run_skill_bundle_import(
-    app: "ToolkitTuiApp",
-    bundles: list["SkillBundleSummary"],
+    app: ToolkitTuiApp,
+    bundles: list[SkillBundleSummary],
 ) -> None:
     cli_args = ["import-skill-bundle", *[str(bundle.bundle_dir) for bundle in bundles]]
     count = len(bundles)

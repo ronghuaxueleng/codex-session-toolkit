@@ -8,7 +8,7 @@ import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Sequence
 
 from ..support import classify_session_kind, iso_to_epoch, iso_to_epoch_ms
 from .session_parser import ParsedSessionFile, parse_session_file
@@ -23,7 +23,7 @@ class DesktopThreadRow:
     created_at_ms: int
     updated_at_ms: int
     source: str
-    thread_source: Optional[str]
+    thread_source: str | None
     model_provider: str
     cwd: str
     title: str
@@ -32,12 +32,12 @@ class DesktopThreadRow:
     tokens_used: int
     has_user_event: int
     archived: int
-    archived_at: Optional[int]
+    archived_at: int | None
     cli_version: str
     first_user_message: str
     memory_mode: str
-    model: Optional[str]
-    reasoning_effort: Optional[str]
+    model: str | None
+    reasoning_effort: str | None
 
 
 def load_desktop_state_data(state_file: Path) -> dict:
@@ -297,7 +297,7 @@ def promote_workspace_threads_for_sidebar(
     *,
     managed_roots: Sequence[Path],
     dry_run: bool = False,
-    base_updated_at: Optional[int] = None,
+    base_updated_at: int | None = None,
 ) -> list[str]:
     if not state_db or not state_db.is_file() or not workspace_dirs:
         return []
@@ -391,7 +391,7 @@ def promote_desktop_thread_ids_for_sidebar(
     *,
     managed_roots: Sequence[Path],
     dry_run: bool = False,
-    base_updated_at: Optional[int] = None,
+    base_updated_at: int | None = None,
 ) -> list[str]:
     if not state_db or not state_db.is_file() or not thread_ids:
         return []
@@ -463,9 +463,9 @@ def promote_desktop_thread_ids_for_sidebar(
 
 
 def load_thread_metadata(
-    state_db: Optional[Path],
+    state_db: Path | None,
     *,
-    session_ids: Optional[set[str]] = None,
+    session_ids: set[str] | None = None,
 ) -> dict[str, dict[str, str]]:
     if not state_db or not state_db.is_file():
         return {}
@@ -523,7 +523,7 @@ def prepare_session_for_import(
 
             try:
                 obj = json.loads(line)
-            except Exception:
+            except json.JSONDecodeError:
                 out_fh.write(raw)
                 continue
 
@@ -549,7 +549,7 @@ def build_threads_row(
     session_file: Path,
     target_rollout: Path,
     *,
-    parsed_session: Optional[ParsedSessionFile] = None,
+    parsed_session: ParsedSessionFile | None = None,
     thread_name: str,
     updated_at: str,
     first_user_message: str = "",
@@ -663,7 +663,7 @@ def upsert_threads_rows(
         conn.close()
 
 
-def load_thread_session_ids(state_db: Optional[Path], *, managed_roots: Sequence[Path] = ()) -> set[str]:
+def load_thread_session_ids(state_db: Path | None, *, managed_roots: Sequence[Path] = ()) -> set[str]:
     if not state_db or not state_db.is_file():
         return set()
 
@@ -904,7 +904,7 @@ def upsert_threads_table(
             if first_line:
                 try:
                     effective_first_user_message = json.loads(first_line).get("text") or effective_first_user_message
-                except Exception:
+                except json.JSONDecodeError:
                     pass
     parsed_session = parse_session_file(session_file)
     row = build_threads_row(

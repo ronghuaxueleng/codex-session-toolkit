@@ -8,7 +8,7 @@ import tempfile
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Sequence
 
 from ..errors import ToolkitError
 from ..models import (
@@ -20,7 +20,6 @@ from ..models import (
     SkillImportResult,
 )
 from ..paths import CodexPaths
-from ..stores.skills_manifest import SKILLS_MANIFEST_FILENAME, read_skills_manifest, write_skills_manifest
 from ..stores.skills import (
     build_skills_manifest_from_local_summaries,
     bundle_skills,
@@ -29,8 +28,19 @@ from ..stores.skills import (
     compute_skill_directory_hash,
     restore_skills,
 )
-from ..support import build_skills_export_root, detect_machine_key, detect_machine_label, ensure_path_within_dir, normalize_bundle_root
-from ..support import restrict_to_local_bundle_workspace
+from ..stores.skills_manifest import (
+    SKILLS_MANIFEST_FILENAME,
+    read_skills_manifest,
+    write_skills_manifest,
+)
+from ..support import (
+    build_skills_export_root,
+    detect_machine_key,
+    detect_machine_label,
+    ensure_path_within_dir,
+    normalize_bundle_root,
+    restrict_to_local_bundle_workspace,
+)
 from ..validation import write_manifest
 
 
@@ -60,7 +70,7 @@ def export_skills(
     *,
     pattern: str = "",
     input_values: Sequence[str] = (),
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     include_system: bool = False,
     skills_mode: str = "best-effort",
 ) -> SkillExportResult:
@@ -85,7 +95,7 @@ def export_skills(
 
     stage_root = Path(tempfile.mkdtemp(prefix=".skills.tmp.", dir=str(export_root.parent)))
     stage_dir = stage_root / export_root.name
-    old_backup: Optional[Path] = None
+    old_backup: Path | None = None
     warnings: list[OperationWarning] = []
     try:
         manifest = build_skills_manifest_from_local_summaries(exportable)

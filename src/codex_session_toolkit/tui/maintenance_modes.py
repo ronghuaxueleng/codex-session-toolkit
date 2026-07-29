@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
 
 from ..errors import ToolkitError
 from ..paths import CodexPaths
@@ -24,7 +23,7 @@ def run_cleanup_mode(
     *,
     target_provider: str,
     dry_run: bool,
-    delete_warning: Optional[str] = None,
+    delete_warning: str | None = None,
 ) -> int:
     if delete_warning and not dry_run:
         print(style_text(delete_warning, Ansi.BOLD, Ansi.YELLOW))

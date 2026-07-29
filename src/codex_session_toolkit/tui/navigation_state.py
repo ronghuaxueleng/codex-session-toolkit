@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Sequence, Tuple
+from typing import Sequence
 
 
 @dataclass(frozen=True)
@@ -55,7 +55,7 @@ def move_wrapped_index(selected_index: int, item_count: int, step: int) -> int:
     return (normalized + step) % item_count
 
 
-def selection_window(total_count: int, selected_index: int, max_visible: int) -> Tuple[int, int]:
+def selection_window(total_count: int, selected_index: int, max_visible: int) -> tuple[int, int]:
     if total_count <= 0:
         return 0, 0
     max_visible = max(1, min(max_visible, total_count))
@@ -65,7 +65,7 @@ def selection_window(total_count: int, selected_index: int, max_visible: int) ->
     return start, min(total_count, start + max_visible)
 
 
-def cycle_option_key(options: Sequence[Tuple[str, str]], current_key: str) -> str:
+def cycle_option_key(options: Sequence[tuple[str, str]], current_key: str) -> str:
     if not options:
         return current_key
     current_index = 0

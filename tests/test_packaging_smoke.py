@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import ast
 import io
@@ -11,36 +13,77 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-
 ROOT_DIR = Path(__file__).resolve().parents[1]
 SRC_DIR = ROOT_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-from codex_session_toolkit import APP_COMMAND, CodexPaths, ToolkitError, __version__, build_app_context, resolve_target_model_provider, run_cli  # noqa: E402
-from codex_session_toolkit import core as core_api  # noqa: E402
-from codex_session_toolkit.command_catalog import CLI_SUBCOMMANDS, COMMAND_CATALOG, command_domain, command_domains, commands_for_domain  # noqa: E402
-from codex_session_toolkit.application.command_handlers import COMMAND_HANDLERS  # noqa: E402
-from codex_session_toolkit.command_parser import create_parser as build_command_parser  # noqa: E402
-from codex_session_toolkit.commands import create_parser  # noqa: E402
-from codex_session_toolkit.models import GitHubSyncStatus  # noqa: E402
-from codex_session_toolkit.stores import skills as skills_store  # noqa: E402
-from codex_session_toolkit.stores import skills_manifest as skills_manifest_store  # noqa: E402
-import codex_session_toolkit.terminal_ui as terminal_ui_compat  # noqa: E402
-import codex_session_toolkit.tui_app as tui_app_compat  # noqa: E402
-from codex_session_toolkit.cli import DEFAULT_MODEL_PROVIDER, create_arg_parser  # noqa: E402
-from codex_session_toolkit.tui.maintenance_modes import run_cleanup_mode, run_clone_mode  # noqa: E402
-from codex_session_toolkit.tui.action_flows import build_delete_archived_sessions_cli_args, build_desktop_repair_cli_args, execute_menu_action, resolve_menu_action_request, run_action  # noqa: E402
-from codex_session_toolkit.tui.browser_flows import open_project_session_browser, open_session_browser  # noqa: E402
-from codex_session_toolkit.tui.github_flows import show_github_sync_status  # noqa: E402
-from codex_session_toolkit.tui.menu_catalog import TUI_ACTION_SECTION_OVERRIDES, build_tui_menu_actions, build_tui_menu_sections, tui_action_section  # noqa: E402
-from codex_session_toolkit.tui.progress_flows import ProgressSubprocessResult  # noqa: E402
-from codex_session_toolkit.tui.prompt_flows import prompt_value  # noqa: E402
-from codex_session_toolkit.tui.sync_prompts import github_sync_hint_lines  # noqa: E402
-from codex_session_toolkit.tui.terminal import LOGO_FONT_BANNER  # noqa: E402
-from codex_session_toolkit.tui.terminal_io import read_key  # noqa: E402
-from codex_session_toolkit.tui import view_models as tui_view_models  # noqa: E402
-from codex_session_toolkit.tui.view_models import ToolkitAppContext  # noqa: E402
+import codex_session_toolkit.terminal_ui as terminal_ui_compat
+import codex_session_toolkit.tui_app as tui_app_compat
+from codex_session_toolkit import (
+    APP_COMMAND,
+    CodexPaths,
+    ToolkitError,
+    __version__,
+    build_app_context,
+    resolve_target_model_provider,
+    run_cli,
+)
+from codex_session_toolkit import core as core_api
+from codex_session_toolkit.application.command_handlers import (
+    COMMAND_HANDLERS,
+)
+from codex_session_toolkit.cli import (
+    DEFAULT_MODEL_PROVIDER,
+    create_arg_parser,
+)
+from codex_session_toolkit.command_catalog import (
+    CLI_SUBCOMMANDS,
+    COMMAND_CATALOG,
+    command_domain,
+    command_domains,
+    commands_for_domain,
+)
+from codex_session_toolkit.command_parser import (
+    create_parser as build_command_parser,
+)
+from codex_session_toolkit.commands import create_parser
+from codex_session_toolkit.models import GitHubSyncStatus
+from codex_session_toolkit.stores import skills as skills_store
+from codex_session_toolkit.stores import (
+    skills_manifest as skills_manifest_store,
+)
+from codex_session_toolkit.tui import view_models as tui_view_models
+from codex_session_toolkit.tui.action_flows import (
+    build_delete_archived_sessions_cli_args,
+    build_desktop_repair_cli_args,
+    execute_menu_action,
+    resolve_menu_action_request,
+    run_action,
+)
+from codex_session_toolkit.tui.browser_flows import (
+    open_project_session_browser,
+    open_session_browser,
+)
+from codex_session_toolkit.tui.github_flows import show_github_sync_status
+from codex_session_toolkit.tui.maintenance_modes import (
+    run_cleanup_mode,
+    run_clone_mode,
+)
+from codex_session_toolkit.tui.menu_catalog import (
+    TUI_ACTION_SECTION_OVERRIDES,
+    build_tui_menu_actions,
+    build_tui_menu_sections,
+    tui_action_section,
+)
+from codex_session_toolkit.tui.progress_flows import (
+    ProgressSubprocessResult,
+)
+from codex_session_toolkit.tui.prompt_flows import prompt_value
+from codex_session_toolkit.tui.sync_prompts import github_sync_hint_lines
+from codex_session_toolkit.tui.terminal import LOGO_FONT_BANNER
+from codex_session_toolkit.tui.terminal_io import read_key
+from codex_session_toolkit.tui.view_models import ToolkitAppContext
 
 
 def _module_env() -> dict:
@@ -162,9 +205,12 @@ class PackagingSmokeTests(unittest.TestCase):
             self.assertFalse(any("慢步骤" in line or "后台" in line for line in detail_lines))
             return task()
 
-        with patch("codex_session_toolkit.tui.github_flows.github_sync_status", side_effect=[local_status, remote_status]) as status_mock:
-            with patch("codex_session_toolkit.tui.github_flows.run_callable_with_progress", side_effect=run_progress) as progress_mock:
-                show_github_sync_status(app)
+        with patch(
+            "codex_session_toolkit.tui.github_flows.github_sync_status", side_effect=[local_status, remote_status]
+        ) as status_mock, patch(
+            "codex_session_toolkit.tui.github_flows.run_callable_with_progress", side_effect=run_progress
+        ) as progress_mock:
+            show_github_sync_status(app)
 
         self.assertEqual(status_mock.call_count, 2)
         progress_mock.assert_called_once()
@@ -195,17 +241,16 @@ class PackagingSmokeTests(unittest.TestCase):
         with patch(
             "codex_session_toolkit.tui.action_flows.run_cli_args_with_progress",
             return_value=ProgressSubprocessResult(return_code=0, stdout="done\n", stderr=""),
-        ) as progress_mock:
-            with patch("builtins.input", return_value=""), redirect_stdout(io.StringIO()):
-                run_action(
-                    ActionApp(),
-                    "推送本机更新到 GitHub",
-                    ["sync-github", "--dry-run"],
-                    dry_run=True,
-                    runner=runner,
-                    danger=False,
-                    use_progress=True,
-                )
+        ) as progress_mock, patch("builtins.input", return_value=""), redirect_stdout(io.StringIO()):
+            run_action(
+                ActionApp(),
+                "推送本机更新到 GitHub",
+                ["sync-github", "--dry-run"],
+                dry_run=True,
+                runner=runner,
+                danger=False,
+                use_progress=True,
+            )
 
         self.assertFalse(runner_called)
         progress_mock.assert_called_once()
@@ -1006,10 +1051,12 @@ class PackagingSmokeTests(unittest.TestCase):
             cwd="/tmp/demo-project",
             model_provider="demo-provider",
         )
-        with patch("codex_session_toolkit.tui.browser_flows.get_project_session_summaries", return_value=[summary]):
-            with patch("codex_session_toolkit.tui.browser_flows.read_key", side_effect=["a", "e", "q"]):
-                with redirect_stdout(io.StringIO()):
-                    open_project_session_browser(app)
+        with patch(
+            "codex_session_toolkit.tui.browser_flows.get_project_session_summaries", return_value=[summary]
+        ), patch("codex_session_toolkit.tui.browser_flows.read_key", side_effect=["a", "e", "q"]), redirect_stdout(
+            io.StringIO()
+        ):
+            open_project_session_browser(app)
 
         self.assertEqual(app.mode_calls, 0)
         self.assertEqual(len(app.run_calls), 1)
@@ -1257,10 +1304,10 @@ class PackagingSmokeTests(unittest.TestCase):
         )
         app = DeleteSessionApp()
 
-        with patch("codex_session_toolkit.tui.browser_flows.get_session_summaries", return_value=[summary]):
-            with patch("codex_session_toolkit.tui.browser_flows.read_key", side_effect=["x", "q"]):
-                with redirect_stdout(io.StringIO()):
-                    open_session_browser(app, mode="view")
+        with patch("codex_session_toolkit.tui.browser_flows.get_session_summaries", return_value=[summary]), patch(
+            "codex_session_toolkit.tui.browser_flows.read_key", side_effect=["x", "q"]
+        ), redirect_stdout(io.StringIO()):
+            open_session_browser(app, mode="view")
 
         self.assertEqual(len(app.confirm_calls), 1)
         confirm_args, _ = app.confirm_calls[0]

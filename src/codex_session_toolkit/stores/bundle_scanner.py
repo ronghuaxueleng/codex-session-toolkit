@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import shlex
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from ..errors import ToolkitError
 from ..models import BundleSummary
@@ -24,12 +23,12 @@ from .session_parser import parse_session_summary_file
 from .skills_manifest import SKILLS_MANIFEST_FILENAME, read_skills_manifest
 
 
-def iter_bundle_directories_under_root(bundle_root: Path) -> List[Path]:
+def iter_bundle_directories_under_root(bundle_root: Path) -> list[Path]:
     bundle_root = Path(bundle_root).expanduser()
     if not bundle_root.is_dir():
         return []
 
-    bundle_dirs: List[Path] = []
+    bundle_dirs: list[Path] = []
     seen_dirs: set[Path] = set()
     for manifest_file in bundle_root.rglob("manifest.env"):
         bundle_dir = manifest_file.parent
@@ -69,13 +68,13 @@ def is_standalone_skills_bundle_dir(bundle_dir: Path) -> bool:
     return False
 
 
-def bundle_directory_sort_key(bundle_dir: Path) -> Tuple[int, int, str]:
+def bundle_directory_sort_key(bundle_dir: Path) -> tuple[int, int, str]:
     manifest_file = bundle_dir / "manifest.env"
     exported_epoch = 0
     try:
         manifest = load_manifest(manifest_file)
         exported_epoch = iso_to_epoch(manifest.get("EXPORTED_AT", "") or manifest.get("UPDATED_AT", ""))
-    except Exception:
+    except (OSError, ToolkitError):
         pass
     try:
         modified_ns = bundle_dir.stat().st_mtime_ns
@@ -106,14 +105,14 @@ def collect_bundle_summaries(
     pattern: str = "",
     machine_filter: str = "",
     export_group_filter: str = "",
-    limit: Optional[int] = None,
-) -> List[BundleSummary]:
+    limit: int | None = None,
+) -> list[BundleSummary]:
     bundle_root = Path(bundle_root).expanduser()
     if not bundle_root.is_dir():
         return []
     export_group_filter = canonical_export_group_name(export_group_filter)
 
-    summaries: List[BundleSummary] = []
+    summaries: list[BundleSummary] = []
     project_batch_cache: dict[Path, tuple[str, str]] = {}
     for bundle_dir in iter_bundle_directories_under_root(bundle_root):
         if is_standalone_skills_bundle_dir(bundle_dir):
@@ -210,17 +209,17 @@ def collect_known_bundle_summaries(
     paths: CodexPaths,
     *,
     pattern: str = "",
-    limit: Optional[int] = None,
+    limit: int | None = None,
     source_group: str = "all",
     machine_filter: str = "",
     export_group_filter: str = "",
-) -> List[BundleSummary]:
+) -> list[BundleSummary]:
     if source_group not in {"all", "bundle", "desktop"}:
         raise ToolkitError(f"Unsupported source_group: {source_group}")
     export_group_filter = canonical_export_group_name(export_group_filter)
 
-    summaries: List[BundleSummary] = []
-    roots: List[Tuple[str, Path, str]] = [("primary", paths.default_bundle_root, source_group)]
+    summaries: list[BundleSummary] = []
+    roots: list[tuple[str, Path, str]] = [("primary", paths.default_bundle_root, source_group)]
     roots.append(("legacy-sessions", paths.legacy_session_bundle_root, source_group))
     if source_group in {"all", "bundle"}:
         roots.append(("legacy-bundle", paths.legacy_bundle_root, "bundle"))
@@ -252,8 +251,8 @@ def collect_known_bundle_summaries(
     return summaries
 
 
-def latest_distinct_bundle_summaries(summaries: List[BundleSummary]) -> List[BundleSummary]:
-    latest: List[BundleSummary] = []
+def latest_distinct_bundle_summaries(summaries: list[BundleSummary]) -> list[BundleSummary]:
+    latest: list[BundleSummary] = []
     seen_keys: set[tuple[str, str]] = set()
 
     for bundle in sorted(
@@ -277,18 +276,18 @@ def iter_known_bundle_directories(
     paths: CodexPaths,
     *,
     source_group: str = "all",
-) -> List[Tuple[str, Path]]:
+) -> list[tuple[str, Path]]:
     if source_group not in {"all", "bundle", "desktop"}:
         raise ToolkitError(f"Unsupported source_group: {source_group}")
 
-    roots: List[Tuple[str, Path, str]] = [("primary", paths.default_bundle_root, source_group)]
+    roots: list[tuple[str, Path, str]] = [("primary", paths.default_bundle_root, source_group)]
     roots.append(("legacy-sessions", paths.legacy_session_bundle_root, source_group))
     if source_group in {"all", "bundle"}:
         roots.append(("legacy-bundle", paths.legacy_bundle_root, "bundle"))
     if source_group in {"all", "desktop"}:
         roots.append(("legacy-desktop", paths.legacy_desktop_bundle_root, "desktop"))
 
-    bundle_dirs: List[Tuple[str, Path]] = []
+    bundle_dirs: list[tuple[str, Path]] = []
     seen_roots: set[Path] = set()
     for group_name, root, root_filter in roots:
         root = Path(root).expanduser()

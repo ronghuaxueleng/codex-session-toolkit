@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from ..errors import ToolkitError
 from ..models import BundleSummary
-from ..stores.bundle_scanner import collect_known_bundle_summaries, latest_distinct_bundle_summaries
+from ..stores.bundle_scanner import (
+    collect_known_bundle_summaries,
+    latest_distinct_bundle_summaries,
+)
 from ..support import normalize_project_path
 from .bundle_state import (
     build_bundle_filter_state,
@@ -23,7 +26,7 @@ if TYPE_CHECKING:
     from .app import ToolkitTuiApp
 
 
-def bundle_detail_lines(app: "ToolkitTuiApp", bundle: BundleSummary) -> List[str]:
+def bundle_detail_lines(app: ToolkitTuiApp, bundle: BundleSummary) -> list[str]:
     lines = [
         f"{style_text('Session ID', Ansi.DIM)} : {bundle.session_id}",
         f"{style_text('来源位置', Ansi.DIM)}  : {_bundle_source_location_label(app, bundle)}",
@@ -46,7 +49,7 @@ def bundle_detail_lines(app: "ToolkitTuiApp", bundle: BundleSummary) -> List[str
     return lines
 
 
-def _bundle_source_location_label(app: "ToolkitTuiApp", bundle: BundleSummary) -> str:
+def _bundle_source_location_label(app: ToolkitTuiApp, bundle: BundleSummary) -> str:
     bundle_dir = bundle.bundle_dir.expanduser()
     root_labels = [
         ("codex_bundles", "local_bundle_workspace"),
@@ -65,7 +68,7 @@ def _bundle_source_location_label(app: "ToolkitTuiApp", bundle: BundleSummary) -
     }.get(bundle.source_group, bundle.source_group or "未知来源")
 
 
-def _bundle_relative_source_path(app: "ToolkitTuiApp", bundle: BundleSummary) -> str:
+def _bundle_relative_source_path(app: ToolkitTuiApp, bundle: BundleSummary) -> str:
     bundle_dir = bundle.bundle_dir.expanduser()
     root_attrs = [
         ("codex_bundles", "local_bundle_workspace"),
@@ -99,15 +102,15 @@ def _path_is_relative_to(path: Path, root: Path) -> bool:
 
 
 def bundle_browser_snapshot(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     filter_text: str,
     machine_filter: str,
     export_group_filter: str,
     latest_only: bool,
     source_group: str = "all",
-    limit: Optional[int] = 240,
-) -> Tuple[object, str, str]:
+    limit: int | None = 240,
+) -> tuple[object, str, str]:
     from .view_models import BundleBrowserSnapshot
 
     all_entries = collect_known_bundle_summaries(
@@ -145,7 +148,7 @@ def bundle_browser_snapshot(
     )
 
 
-def bundle_machine_folder_options(app: "ToolkitTuiApp") -> List[object]:
+def bundle_machine_folder_options(app: ToolkitTuiApp) -> list[object]:
     from .view_models import BundleMachineFolderOption
 
     summaries = collect_known_bundle_summaries(app.paths, pattern="", limit=None, source_group="all")
@@ -160,7 +163,7 @@ def bundle_machine_folder_options(app: "ToolkitTuiApp") -> List[object]:
     ]
 
 
-def bundle_category_folder_options(app: "ToolkitTuiApp", machine_key: str) -> List[object]:
+def bundle_category_folder_options(app: ToolkitTuiApp, machine_key: str) -> list[object]:
     from .view_models import BundleCategoryFolderOption
 
     summaries = collect_known_bundle_summaries(
@@ -181,7 +184,7 @@ def bundle_category_folder_options(app: "ToolkitTuiApp", machine_key: str) -> Li
     ]
 
 
-def bundle_project_folder_options(app: "ToolkitTuiApp", entries: List[BundleSummary]) -> List[object]:
+def bundle_project_folder_options(app: ToolkitTuiApp, entries: list[BundleSummary]) -> list[object]:
     from .view_models import BundleProjectFolderOption
 
     return [
@@ -199,16 +202,16 @@ def bundle_project_folder_options(app: "ToolkitTuiApp", entries: List[BundleSumm
     ]
 
 
-def default_target_project_path(app: "ToolkitTuiApp", project_option: object) -> str:
+def default_target_project_path(app: ToolkitTuiApp, project_option: object) -> str:
     return getattr(project_option, "local_target_path", "")
 
 
 def select_project_bundle_import_scope(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     selected_machine: object,
     selected_category: object,
-) -> Optional[object]:
+) -> object | None:
     from .view_models import BatchBundleImportSelection
 
     pointer = glyphs().get("pointer", ">")
@@ -230,9 +233,9 @@ def select_project_bundle_import_scope(
         ]
         for line in render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
             print(line)
-        print("")
+        print()
 
-        project_lines: List[str] = []
+        project_lines: list[str] = []
         if not project_options:
             project_lines.append("这个设备的 project 分类下没有可导入的项目文件夹。按 q 返回。")
         else:
@@ -332,7 +335,7 @@ def select_project_bundle_import_scope(
             )
 
 
-def select_batch_bundle_import_scope(app: "ToolkitTuiApp"):
+def select_batch_bundle_import_scope(app: ToolkitTuiApp):
     from .view_models import BatchBundleImportSelection
 
     pointer = glyphs().get("pointer", ">")
@@ -358,7 +361,7 @@ def select_batch_bundle_import_scope(app: "ToolkitTuiApp"):
         ]
         for line in render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
             print(line)
-        print("")
+        print()
 
         machine_lines: list[str] = []
         if not machine_options:
@@ -429,7 +432,7 @@ def select_batch_bundle_import_scope(app: "ToolkitTuiApp"):
             ]
             for line in render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
                 print(line)
-            print("")
+            print()
 
             category_lines: list[str] = []
             if not category_options:
@@ -491,8 +494,8 @@ def select_batch_bundle_import_scope(app: "ToolkitTuiApp"):
                         f"{style_text('设备', Ansi.DIM)}     : {selected_machine.machine_label}",
                         f"{style_text('分类', Ansi.DIM)}     : {selected_category.export_group_label}",
                         f"{style_text('Bundle 数', Ansi.DIM)} : {selected_category.bundle_count}",
-                        f"{style_text('分类路径', Ansi.DIM)} : "
-                        f"{(selected_category.entries[0].bundle_dir.parents[2] if selected_category.entries and selected_category.export_group == 'project' else selected_category.entries[0].bundle_dir.parents[1]) if selected_category.entries else '（空）'}",
+                        (f"{style_text('分类路径', Ansi.DIM)} : "
+                        f"{(selected_category.entries[0].bundle_dir.parents[2] if selected_category.entries and selected_category.export_group == 'project' else selected_category.entries[0].bundle_dir.parents[1]) if selected_category.entries else '（空）'}"),
                     ],
                     border_codes=(Ansi.DIM, Ansi.GREEN),
                 )

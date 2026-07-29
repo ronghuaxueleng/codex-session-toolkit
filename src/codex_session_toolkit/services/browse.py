@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from ..models import BundleSummary, SessionSummary, ValidationReport
 from ..paths import CodexPaths
 from ..stores.bundle_scanner import (
@@ -18,7 +16,7 @@ def get_session_summaries(
     paths: CodexPaths,
     *,
     pattern: str = "",
-    limit: Optional[int] = None,
+    limit: int | None = None,
     project_path: str = "",
     active_only: bool = False,
     archived_only: bool = False,
@@ -40,7 +38,7 @@ def get_project_session_summaries(
     *,
     project_path: str,
     pattern: str = "",
-    limit: Optional[int] = None,
+    limit: int | None = None,
 ) -> list[SessionSummary]:
     return collect_session_summaries(paths, pattern=pattern, limit=limit, project_path=project_path)
 
@@ -49,7 +47,7 @@ def get_bundle_summaries(
     paths: CodexPaths,
     *,
     pattern: str = "",
-    limit: Optional[int] = None,
+    limit: int | None = None,
     source_group: str = "all",
     machine_filter: str = "",
     export_group_filter: str = "",
@@ -69,7 +67,7 @@ def validate_bundles(
     *,
     pattern: str = "",
     source_group: str = "all",
-    limit: Optional[int] = None,
+    limit: int | None = None,
 ) -> ValidationReport:
     bundle_entries = iter_known_bundle_directories(paths, source_group=source_group)
     results = []

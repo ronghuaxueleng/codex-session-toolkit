@@ -10,14 +10,18 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 from urllib.parse import urlparse
 
 from ..errors import ToolkitError
-from ..models import GitHubConnectResult, GitHubProxyResult, GitHubPullResult, GitHubSyncResult, GitHubSyncStatus
+from ..models import (
+    GitHubConnectResult,
+    GitHubProxyResult,
+    GitHubPullResult,
+    GitHubSyncResult,
+    GitHubSyncStatus,
+)
 from ..paths import CodexPaths
 from ..support import normalize_bundle_root
-
 
 DEFAULT_GITHUB_SYNC_BRANCH = "main"
 DEFAULT_GITHUB_SYNC_MESSAGE = "Sync Codex bundles"
@@ -72,7 +76,7 @@ def get_github_sync_status(
     *,
     remote_name: str = DEFAULT_GITHUB_REMOTE_NAME,
     branch: str = DEFAULT_GITHUB_SYNC_BRANCH,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     check_remote: bool = False,
 ) -> GitHubSyncStatus:
     resolved_root = normalize_bundle_root(paths, bundle_root, paths.default_bundle_root, label="GitHub sync bundle root")
@@ -163,7 +167,7 @@ def configure_github_proxy(
     paths: CodexPaths,
     proxy_url: str = "",
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
     disconnect: bool = False,
 ) -> GitHubProxyResult:
@@ -251,7 +255,7 @@ def connect_bundles_to_github(
     *,
     remote_name: str = DEFAULT_GITHUB_REMOTE_NAME,
     branch: str = DEFAULT_GITHUB_SYNC_BRANCH,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
 ) -> GitHubConnectResult:
     resolved_root = normalize_bundle_root(paths, bundle_root, paths.default_bundle_root, label="GitHub sync bundle root")
@@ -320,7 +324,7 @@ def pull_bundles_from_github(
     *,
     remote_name: str = DEFAULT_GITHUB_REMOTE_NAME,
     branch: str = DEFAULT_GITHUB_SYNC_BRANCH,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
 ) -> GitHubPullResult:
     resolved_root = normalize_bundle_root(paths, bundle_root, paths.default_bundle_root, label="GitHub sync bundle root")
@@ -475,7 +479,7 @@ def sync_bundles_to_github(
     *,
     remote_name: str = DEFAULT_GITHUB_REMOTE_NAME,
     branch: str = DEFAULT_GITHUB_SYNC_BRANCH,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     message: str = DEFAULT_GITHUB_SYNC_MESSAGE,
     dry_run: bool = False,
     push: bool = True,
@@ -1024,8 +1028,7 @@ def _git_process(
     credential_overrides = _portable_credential_helper_overrides(bundle_root)
     result = subprocess.run(
         ["git", *credential_overrides, "-C", str(bundle_root), *args],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         env=env,
         check=False,
@@ -1056,8 +1059,7 @@ def _configured_credential_helpers(bundle_root: Path) -> list[str]:
     try:
         result = subprocess.run(
             ["git", "-C", str(bundle_root), "config", "--get-all", "credential.helper"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             text=True,
             check=False,
         )
@@ -1182,8 +1184,7 @@ def _command_is_available(command_name: str) -> bool:
 def _git_credential_helper_is_available(helper_name: str) -> bool:
     result = subprocess.run(
         ["git", f"credential-{helper_name}"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
         check=False,
     )

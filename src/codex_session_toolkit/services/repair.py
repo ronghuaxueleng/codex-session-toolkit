@@ -14,9 +14,9 @@ from ..stores.desktop_state import (
     build_threads_row,
     ensure_sidebar_thread_state,
     ensure_sidebar_workspace_visibility,
+    load_desktop_state_data,
     load_thread_metadata,
     load_thread_session_ids,
-    load_desktop_state_data,
     merge_workspace_root,
     promote_workspace_threads_for_sidebar,
     prune_threads_rows,
@@ -25,9 +25,18 @@ from ..stores.desktop_state import (
     write_desktop_state_data,
 )
 from ..stores.history import first_history_messages
-from ..stores.index import SessionIndexEntry, is_weak_thread_name, load_existing_index, write_session_index_entries
+from ..stores.index import (
+    SessionIndexEntry,
+    is_weak_thread_name,
+    load_existing_index,
+    write_session_index_entries,
+)
 from ..stores.session_files import build_session_preview, iter_session_files
-from ..stores.session_parser import looks_like_session_meta_text, normalize_session_text, parse_session_file
+from ..stores.session_parser import (
+    looks_like_session_meta_text,
+    normalize_session_text,
+    parse_session_file,
+)
 from ..support import backup_file, classify_session_kind, iso_to_epoch, normalize_iso
 
 
@@ -43,7 +52,7 @@ def repair_desktop(
         raise ToolkitError(f"Missing Codex data directory: {paths.code_dir}")
 
     provider = detect_provider(paths, explicit=target_provider)
-    backup_root = paths.code_dir / "repair_backups" / f"visibility-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+    backup_root = paths.code_dir / "repair_backups" / f"visibility-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}"
     backed_up: set[str] = set()
     warnings: list[OperationWarning] = []
 
@@ -59,7 +68,7 @@ def repair_desktop(
     entries: list[dict] = []
     changed_sessions: list[str] = []
     skipped_sessions: list[str] = []
-    workspace_candidates: "OrderedDict[str, bool]" = OrderedDict()
+    workspace_candidates: OrderedDict[str, bool] = OrderedDict()
     desktop_retagged = 0
     cli_converted = 0
 
@@ -145,9 +154,8 @@ def repair_desktop(
             history_first_messages=history_first_messages,
         )
         first_user_message = parsed_session.first_user_prompt or history_first_messages.get(session_id) or thread_name
-        if cwd:
-            if cwd not in workspace_candidates:
-                workspace_candidates[cwd] = True
+        if cwd and cwd not in workspace_candidates:
+            workspace_candidates[cwd] = True
 
         entries.append(
             {

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import sys
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING
 
 from .navigation_state import selection_window
 from .terminal import (
@@ -22,20 +22,20 @@ if TYPE_CHECKING:
 
 
 def show_detail_panel(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     title: str,
-    lines: List[str],
+    lines: list[str],
     *,
-    border_codes: Optional[Tuple[str, ...]] = None,
+    border_codes: tuple[str, ...] | None = None,
 ) -> None:
     box_width = app._print_branded_header(title)
     for line in render_box(lines, width=box_width, border_codes=border_codes or (Ansi.DIM, Ansi.BLUE)):
         print(line)
-    print("")
+    print()
     input(style_text("按 Enter 返回...", Ansi.DIM))
 
 
-def tui_help_text(app: "ToolkitTuiApp") -> None:
+def tui_help_text(app: ToolkitTuiApp) -> None:
     box_width = app._print_branded_header("帮助 / 使用说明")
     lines = [
         style_text("推荐入口：", Ansi.BOLD),
@@ -96,14 +96,14 @@ def tui_help_text(app: "ToolkitTuiApp") -> None:
     ]
     for line in render_box(lines, width=box_width, border_codes=(Ansi.DIM,)):
         print(line)
-    print("")
+    print()
     input("按 Enter 返回菜单...")
 
 
-def render_home(app: "ToolkitTuiApp", selected_section_index: int) -> None:
+def render_home(app: ToolkitTuiApp, selected_section_index: int) -> None:
     box_width, center = app._screen_layout()
     pointer = glyphs().get("pointer", ">")
-    output_lines: List[str] = []
+    output_lines: list[str] = []
     selected_section = app.menu_sections[selected_section_index]
 
     for line in app_logo_lines(max_width=100):
@@ -114,13 +114,12 @@ def render_home(app: "ToolkitTuiApp", selected_section_index: int) -> None:
     output_lines.append("")
 
     info_lines = [
-        f"{style_text('Provider', Ansi.DIM)} : {style_text(app.context.target_provider, Ansi.BOLD, Ansi.CYAN)}"
-        f"  {style_text('Sessions', Ansi.DIM)} : {ellipsize_middle(app.context.active_sessions_dir, max(16, box_width - 40))}",
+        (f"{style_text('Provider', Ansi.DIM)} : {style_text(app.context.target_provider, Ansi.BOLD, Ansi.CYAN)}"
+        f"  {style_text('Sessions', Ansi.DIM)} : {ellipsize_middle(app.context.active_sessions_dir, max(16, box_width - 40))}"),
         f"{style_text('Config', Ansi.DIM)} : {ellipsize_middle(app.context.config_path, max(16, box_width - 18))}",
     ]
     info_lines.extend(app._github_sync_hint_lines())
-    for line in render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
-        output_lines.append(line)
+    output_lines.extend(render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)))
     output_lines.append("")
 
     section_nav_lines = [style_text("功能域导航", Ansi.BOLD)]
@@ -131,8 +130,7 @@ def render_home(app: "ToolkitTuiApp", selected_section_index: int) -> None:
             section_nav_lines.append(style_text(f"{pointer} {header}", Ansi.BOLD, Ansi.UNDERLINE, section_color))
         else:
             section_nav_lines.append("  " + style_text(header, Ansi.DIM, section_color))
-    for line in render_box(section_nav_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.MAGENTA)):
-        output_lines.append(line)
+    output_lines.extend(render_box(section_nav_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.MAGENTA)))
     output_lines.append("")
 
     selected_actions = app._actions_for_section(selected_section.section_id)
@@ -146,8 +144,7 @@ def render_home(app: "ToolkitTuiApp", selected_section_index: int) -> None:
     for note in app._section_notes(selected_section)[:1]:
         summary_lines.append(f"{style_text('说明', Ansi.DIM)} : {note}")
     summary_lines.append(f"{style_text('包含动作', Ansi.DIM)} : {preview_labels}")
-    for line in render_box(summary_lines, width=box_width, border_codes=selected_section.border_codes):
-        output_lines.append(line)
+    output_lines.extend(render_box(summary_lines, width=box_width, border_codes=selected_section.border_codes))
     output_lines.append("")
 
     output_lines.append(style_text("Enter 进入功能页  |  ↑/↓ 选择功能域  |  h 帮助  |  q 退出", Ansi.DIM))
@@ -167,11 +164,11 @@ def render_home(app: "ToolkitTuiApp", selected_section_index: int) -> None:
     sys.stdout.flush()
 
 
-def render_section_page(app: "ToolkitTuiApp", section_index: int, action_offset: int) -> None:
+def render_section_page(app: ToolkitTuiApp, section_index: int, action_offset: int) -> None:
     box_width, center = app._screen_layout()
     screen_height = app._screen_height()
     pointer = glyphs().get("pointer", ">")
-    output_lines: List[str] = []
+    output_lines: list[str] = []
 
     menu_section = app.menu_sections[section_index]
     section_actions = app._actions_for_section(menu_section.section_id)
@@ -196,8 +193,7 @@ def render_section_page(app: "ToolkitTuiApp", section_index: int, action_offset:
         info_lines.extend(app._github_sync_hint_lines())
     for note in app._action_notes(selected_action)[:1]:
         info_lines.append(f"{style_text('说明', Ansi.DIM)} : {note}")
-    for line in render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
-        output_lines.append(line)
+    output_lines.extend(render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)))
     output_lines.append("")
 
     section_lines = [style_text(menu_section.title, Ansi.BOLD)]
@@ -217,8 +213,7 @@ def render_section_page(app: "ToolkitTuiApp", section_index: int, action_offset:
             section_lines.append("  " + style_text(hotkey, Ansi.DIM, app._action_color(menu_action)) + " " + menu_action.label)
     if end < len(section_actions):
         section_lines.append(style_text("... 下方还有更多动作 ...", Ansi.DIM))
-    for line in render_box(section_lines, width=box_width, border_codes=menu_section.border_codes):
-        output_lines.append(line)
+    output_lines.extend(render_box(section_lines, width=box_width, border_codes=menu_section.border_codes))
     output_lines.append("")
 
     output_lines.append(style_text("↑/↓ 选择动作  |  Enter 执行  |  ←/q 返回首页  |  →/PgDn 下一功能页  |  PgUp 上一功能页", Ansi.DIM))

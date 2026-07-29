@@ -20,9 +20,9 @@ _STABLE_EXPORTS = {
 __all__ = [
     "APP_COMMAND",
     "APP_DISPLAY_NAME",
-    "__version__",
     "CodexPaths",
     "ToolkitError",
+    "__version__",
     "build_app_context",
     "main",
     "resolve_target_model_provider",

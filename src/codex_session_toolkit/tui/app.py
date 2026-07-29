@@ -10,39 +10,77 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Callable, List, Optional, Sequence, Tuple
+from typing import Callable, Sequence
 
 from ..commands import run_cli as run_toolkit_cli
 from ..errors import ToolkitError
-from ..models import BundleSummary, GitHubSyncStatus, LocalSkillSummary, SessionBackupSummary, SessionSummary, SkillBundleSummary
+from ..models import (
+    BundleSummary,
+    GitHubSyncStatus,
+    LocalSkillSummary,
+    SessionBackupSummary,
+    SessionSummary,
+    SkillBundleSummary,
+)
 from ..paths import CodexPaths
+from ..support import normalize_project_path
 from .action_flows import execute_menu_action as _execute_menu_action_flow
-from .action_flows import resolve_menu_action_request as _resolve_menu_action_request_flow
+from .action_flows import (
+    resolve_menu_action_request as _resolve_menu_action_request_flow,
+)
 from .action_flows import run_action as _run_action_flow
-from .bundle_flows import bundle_browser_snapshot as _bundle_browser_snapshot_flow
-from .bundle_flows import bundle_category_folder_options as _bundle_category_folder_options_flow
-from .bundle_flows import bundle_detail_lines as _bundle_detail_lines_flow
-from .bundle_flows import bundle_machine_folder_options as _bundle_machine_folder_options_flow
-from .bundle_flows import bundle_project_folder_options as _bundle_project_folder_options_flow
-from .bundle_flows import default_target_project_path as _default_target_project_path_flow
-from .bundle_flows import select_batch_bundle_import_scope as _select_batch_bundle_import_scope_flow
-from .bundle_flows import select_project_bundle_import_scope as _select_project_bundle_import_scope_flow
+from .browser_flows import (
+    open_archived_session_browser as _open_archived_session_browser_flow,
+)
 from .browser_flows import open_bundle_browser as _open_bundle_browser_flow
-from .browser_flows import open_archived_session_browser as _open_archived_session_browser_flow
-from .browser_flows import open_migrated_original_session_browser as _open_migrated_original_session_browser_flow
 from .browser_flows import open_local_skill_browser as _open_local_skill_browser_flow
-from .browser_flows import open_project_session_browser as _open_project_session_browser_flow
-from .browser_flows import open_session_backup_browser as _open_session_backup_browser_flow
+from .browser_flows import (
+    open_migrated_original_session_browser as _open_migrated_original_session_browser_flow,
+)
+from .browser_flows import (
+    open_project_session_browser as _open_project_session_browser_flow,
+)
+from .browser_flows import (
+    open_session_backup_browser as _open_session_backup_browser_flow,
+)
 from .browser_flows import open_session_browser as _open_session_browser_flow
 from .browser_flows import open_skill_bundle_browser as _open_skill_bundle_browser_flow
+from .bundle_flows import bundle_browser_snapshot as _bundle_browser_snapshot_flow
+from .bundle_flows import (
+    bundle_category_folder_options as _bundle_category_folder_options_flow,
+)
+from .bundle_flows import bundle_detail_lines as _bundle_detail_lines_flow
+from .bundle_flows import (
+    bundle_machine_folder_options as _bundle_machine_folder_options_flow,
+)
+from .bundle_flows import (
+    bundle_project_folder_options as _bundle_project_folder_options_flow,
+)
+from .bundle_flows import (
+    default_target_project_path as _default_target_project_path_flow,
+)
+from .bundle_flows import (
+    select_batch_bundle_import_scope as _select_batch_bundle_import_scope_flow,
+)
+from .bundle_flows import (
+    select_project_bundle_import_scope as _select_project_bundle_import_scope_flow,
+)
 from .github_flows import github_sync_status as _github_sync_status_flow
 from .github_flows import github_sync_status_lines as _github_sync_status_lines_flow
 from .github_flows import show_github_sync_status as _show_github_sync_status_flow
+from .menu_catalog import (
+    SECTION_NOTES,
+    TUI_ACTION_NOTES,
+    build_tui_menu_actions,
+    build_tui_menu_sections,
+)
 from .navigation_state import apply_home_key, apply_section_key, clamp_selected_index
 from .prompt_flows import confirm_dangerous_action as _confirm_dangerous_action_flow
 from .prompt_flows import confirm_toggle as _confirm_toggle_flow
 from .prompt_flows import prompt_choice as _prompt_choice_flow
-from .prompt_flows import prompt_desktop_repair_scope as _prompt_desktop_repair_scope_flow
+from .prompt_flows import (
+    prompt_desktop_repair_scope as _prompt_desktop_repair_scope_flow,
+)
 from .prompt_flows import prompt_execution_mode as _prompt_execution_mode_flow
 from .prompt_flows import prompt_value as _prompt_value_flow
 from .prompt_flows import render_prompt_choice as _render_prompt_choice_flow
@@ -59,12 +97,10 @@ from .terminal import (
     tui_width,
 )
 from .terminal_io import read_key
-from ..support import normalize_project_path
 from .ui_panels import render_home as _render_home_flow
 from .ui_panels import render_section_page as _render_section_page_flow
 from .ui_panels import show_detail_panel as _show_detail_panel_flow
 from .ui_panels import tui_help_text as _tui_help_text_flow
-from .menu_catalog import SECTION_NOTES, TUI_ACTION_NOTES, build_tui_menu_actions, build_tui_menu_sections
 from .view_models import (
     BatchBundleImportSelection,
     BundleBrowserSnapshot,
@@ -100,14 +136,14 @@ class ToolkitTuiApp:
             cmd += " " + " ".join(args)
         return cmd
 
-    def _screen_layout(self) -> Tuple[int, bool]:
+    def _screen_layout(self) -> tuple[int, bool]:
         box_width = tui_width(term_width())
         return box_width, box_width >= 70
 
     def _screen_height(self) -> int:
         return max(12, term_height())
 
-    def _fit_lines_to_screen(self, lines: List[str]) -> List[str]:
+    def _fit_lines_to_screen(self, lines: list[str]) -> list[str]:
         max_rows = self._screen_height()
         if len(lines) <= max_rows:
             return lines
@@ -118,7 +154,7 @@ class ToolkitTuiApp:
         return trimmed
 
     def _section_tabs_line(self, selected_section_index: int, width: int) -> str:
-        tabs: List[str] = []
+        tabs: list[str] = []
         for pos, menu_section in enumerate(self.menu_sections):
             label = f"[{pos + 1}] {menu_section.title}"
             if pos == selected_section_index:
@@ -127,7 +163,7 @@ class ToolkitTuiApp:
                 tabs.append(style_text(label, Ansi.DIM))
         return ellipsize_middle("  ".join(tabs), width)
 
-    def _actions_for_section(self, section_id: str) -> List[Tuple[int, TuiMenuAction]]:
+    def _actions_for_section(self, section_id: str) -> list[tuple[int, TuiMenuAction]]:
         return [
             (idx, menu_action)
             for idx, menu_action in enumerate(self.menu_actions)
@@ -143,10 +179,10 @@ class ToolkitTuiApp:
         print(align_line(style_text(title, Ansi.DIM), box_width, center=center))
         if subtitle:
             print(align_line(style_text(subtitle, Ansi.DIM), box_width, center=center))
-        print("")
+        print()
         return box_width
 
-    def _run_toolkit(self, cli_args: List[str]) -> int:
+    def _run_toolkit(self, cli_args: list[str]) -> int:
         try:
             return int(run_toolkit_cli(cli_args))
         except ToolkitError as exc:
@@ -170,7 +206,7 @@ class ToolkitTuiApp:
             return Ansi.DIM
         return Ansi.CYAN
 
-    def _action_notes(self, menu_action: TuiMenuAction) -> List[str]:
+    def _action_notes(self, menu_action: TuiMenuAction) -> list[str]:
         return TUI_ACTION_NOTES.get(menu_action.action_id, [])
 
     def _section_color(self, menu_section: TuiMenuSection) -> str:
@@ -184,22 +220,22 @@ class ToolkitTuiApp:
             return Ansi.GREEN
         return Ansi.CYAN
 
-    def _section_notes(self, menu_section: TuiMenuSection) -> List[str]:
+    def _section_notes(self, menu_section: TuiMenuSection) -> list[str]:
         return SECTION_NOTES.get(menu_section.section_id, [])
 
     def _github_sync_status(self, *, check_remote: bool = False) -> GitHubSyncStatus:
         return _github_sync_status_flow(self, check_remote=check_remote)
 
-    def _github_sync_status_lines(self, status: Optional[GitHubSyncStatus] = None) -> List[str]:
+    def _github_sync_status_lines(self, status: GitHubSyncStatus | None = None) -> list[str]:
         return _github_sync_status_lines_flow(self, status)
 
     def _show_github_sync_status(self) -> None:
         return _show_github_sync_status_flow(self)
 
-    def _github_sync_hint_lines(self, *, force: bool = False) -> List[str]:
+    def _github_sync_hint_lines(self, *, force: bool = False) -> list[str]:
         return _github_sync_hint_lines_flow(self, force=force)
 
-    def _session_detail_lines(self, summary: SessionSummary) -> List[str]:
+    def _session_detail_lines(self, summary: SessionSummary) -> list[str]:
         return [
             f"{style_text('Session ID', Ansi.DIM)} : {summary.session_id}",
             f"{style_text('类型', Ansi.DIM)}      : {summary.kind}",
@@ -211,7 +247,7 @@ class ToolkitTuiApp:
             f"{style_text('兜底预览', Ansi.DIM)}  : {summary.preview or '（无）'}",
         ]
 
-    def _session_backup_detail_lines(self, backup: SessionBackupSummary) -> List[str]:
+    def _session_backup_detail_lines(self, backup: SessionBackupSummary) -> list[str]:
         target_state = "存在" if backup.target_exists else "缺失"
         kind_label = "恢复前安全备份" if backup.backup_kind == "restore-safety" else "覆盖前本地备份"
         return [
@@ -228,7 +264,7 @@ class ToolkitTuiApp:
             f"{style_text('预览', Ansi.DIM)}      : {backup.preview or '（无）'}",
         ]
 
-    def _prompt_project_path(self, *, default: str = "") -> Optional[str]:
+    def _prompt_project_path(self, *, default: str = "") -> str | None:
         answer = self._prompt_value(
             title="按项目路径查看并导出会话",
             prompt_label="输入项目路径",
@@ -246,10 +282,10 @@ class ToolkitTuiApp:
     def _open_project_session_browser(self) -> None:
         return _open_project_session_browser_flow(self)
 
-    def _bundle_detail_lines(self, bundle: BundleSummary) -> List[str]:
+    def _bundle_detail_lines(self, bundle: BundleSummary) -> list[str]:
         return _bundle_detail_lines_flow(self, bundle)
 
-    def _local_skill_detail_lines(self, skill: LocalSkillSummary) -> List[str]:
+    def _local_skill_detail_lines(self, skill: LocalSkillSummary) -> list[str]:
         return [
             f"{style_text('Skill', Ansi.DIM)}      : {skill.name}",
             f"{style_text('来源根', Ansi.DIM)}     : {skill.source_root}",
@@ -259,7 +295,7 @@ class ToolkitTuiApp:
             f"{style_text('路径', Ansi.DIM)}       : {skill.skill_dir}",
         ]
 
-    def _skill_bundle_detail_lines(self, bundle: SkillBundleSummary) -> List[str]:
+    def _skill_bundle_detail_lines(self, bundle: SkillBundleSummary) -> list[str]:
         lines = [
             f"{style_text('导出时间', Ansi.DIM)} : {bundle.exported_at or '-'}",
             f"{style_text('来源机器', Ansi.DIM)} : {bundle.source_machine or bundle.source_machine_key or '-'}",
@@ -279,8 +315,8 @@ class ToolkitTuiApp:
         export_group_filter: str,
         latest_only: bool,
         source_group: str = "all",
-        limit: Optional[int] = 240,
-    ) -> Tuple[BundleBrowserSnapshot, str, str]:
+        limit: int | None = 240,
+    ) -> tuple[BundleBrowserSnapshot, str, str]:
         return _bundle_browser_snapshot_flow(
             self,
             filter_text=filter_text,
@@ -291,13 +327,13 @@ class ToolkitTuiApp:
             limit=limit,
         )
 
-    def _bundle_machine_folder_options(self) -> List[BundleMachineFolderOption]:
+    def _bundle_machine_folder_options(self) -> list[BundleMachineFolderOption]:
         return _bundle_machine_folder_options_flow(self)
 
-    def _bundle_category_folder_options(self, machine_key: str) -> List[BundleCategoryFolderOption]:
+    def _bundle_category_folder_options(self, machine_key: str) -> list[BundleCategoryFolderOption]:
         return _bundle_category_folder_options_flow(self, machine_key)
 
-    def _bundle_project_folder_options(self, entries: List[BundleSummary]) -> List[BundleProjectFolderOption]:
+    def _bundle_project_folder_options(self, entries: list[BundleSummary]) -> list[BundleProjectFolderOption]:
         return _bundle_project_folder_options_flow(self, entries)
 
     def _default_target_project_path(self, project_option: BundleProjectFolderOption) -> str:
@@ -308,7 +344,7 @@ class ToolkitTuiApp:
         *,
         selected_machine: BundleMachineFolderOption,
         selected_category: BundleCategoryFolderOption,
-    ) -> Optional[BatchBundleImportSelection]:
+    ) -> BatchBundleImportSelection | None:
         return _select_project_bundle_import_scope_flow(
             self,
             selected_machine=selected_machine,
@@ -320,10 +356,10 @@ class ToolkitTuiApp:
         *,
         title: str,
         prompt_label: str,
-        help_lines: List[str],
+        help_lines: list[str],
         default: str = "",
         allow_empty: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         return _prompt_value_flow(
             self,
             title=title,
@@ -356,8 +392,8 @@ class ToolkitTuiApp:
         *,
         title: str,
         prompt_label: str,
-        help_lines: List[str],
-        choices: Sequence[Tuple[str, str]],
+        help_lines: list[str],
+        choices: Sequence[tuple[str, str]],
         selected_index: int,
         allow_cancel: bool = True,
     ) -> None:
@@ -376,11 +412,11 @@ class ToolkitTuiApp:
         *,
         title: str,
         prompt_label: str,
-        help_lines: List[str],
-        choices: Sequence[Tuple[str, str]],
+        help_lines: list[str],
+        choices: Sequence[tuple[str, str]],
         default: str = "",
         allow_cancel: bool = True,
-    ) -> Optional[str]:
+    ) -> str | None:
         return _prompt_choice_flow(
             self,
             title=title,
@@ -396,22 +432,22 @@ class ToolkitTuiApp:
         *,
         title: str,
         default_dry_run: bool = False,
-    ) -> Optional[bool]:
+    ) -> bool | None:
         return _prompt_execution_mode_flow(
             self,
             title=title,
             default_dry_run=default_dry_run,
         )
 
-    def _prompt_desktop_repair_scope(self) -> Optional[bool]:
+    def _prompt_desktop_repair_scope(self) -> bool | None:
         return _prompt_desktop_repair_scope_flow(self)
 
     def _show_detail_panel(
         self,
         title: str,
-        lines: List[str],
+        lines: list[str],
         *,
-        border_codes: Optional[Tuple[str, ...]] = None,
+        border_codes: tuple[str, ...] | None = None,
     ) -> None:
         return _show_detail_panel_flow(
             self,
@@ -420,10 +456,10 @@ class ToolkitTuiApp:
             border_codes=border_codes,
         )
 
-    def _open_session_browser(self, *, mode: str) -> Optional[SessionSummary]:
+    def _open_session_browser(self, *, mode: str) -> SessionSummary | None:
         return _open_session_browser_flow(self, mode=mode)
 
-    def _open_session_backup_browser(self, *, mode: str) -> Optional[SessionBackupSummary]:
+    def _open_session_backup_browser(self, *, mode: str) -> SessionBackupSummary | None:
         return _open_session_backup_browser_flow(self, mode=mode)
 
     def _open_archived_session_browser(self) -> None:
@@ -432,19 +468,19 @@ class ToolkitTuiApp:
     def _open_migrated_original_session_browser(self) -> None:
         return _open_migrated_original_session_browser_flow(self)
 
-    def _open_bundle_browser(self, *, mode: str, source_group: str = "all") -> Optional[BundleSummary]:
+    def _open_bundle_browser(self, *, mode: str, source_group: str = "all") -> BundleSummary | None:
         return _open_bundle_browser_flow(self, mode=mode, source_group=source_group)
 
-    def _open_local_skill_browser(self, *, mode: str) -> Optional[LocalSkillSummary]:
+    def _open_local_skill_browser(self, *, mode: str) -> LocalSkillSummary | None:
         return _open_local_skill_browser_flow(self, mode=mode)
 
-    def _open_skill_bundle_browser(self, *, mode: str) -> Optional[SkillBundleSummary]:
+    def _open_skill_bundle_browser(self, *, mode: str) -> SkillBundleSummary | None:
         return _open_skill_bundle_browser_flow(self, mode=mode)
 
-    def _select_batch_bundle_import_scope(self) -> Optional[BatchBundleImportSelection]:
+    def _select_batch_bundle_import_scope(self) -> BatchBundleImportSelection | None:
         return _select_batch_bundle_import_scope_flow(self)
 
-    def _resolve_menu_action_request(self, menu_action: TuiMenuAction) -> Tuple[Optional[str], Optional[List[str]]]:
+    def _resolve_menu_action_request(self, menu_action: TuiMenuAction) -> tuple[str | None, list[str] | None]:
         return _resolve_menu_action_request_flow(self, menu_action)
 
     def _tui_help_text(self) -> None:
@@ -467,7 +503,7 @@ class ToolkitTuiApp:
         dry_run: bool,
         runner: Callable[[], int],
         danger: bool,
-        preview_cmd: Optional[str] = None,
+        preview_cmd: str | None = None,
         use_progress: bool = False,
     ) -> None:
         return _run_action_flow(

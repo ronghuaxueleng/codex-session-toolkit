@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path, PureWindowsPath
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable
 
 from ..errors import ToolkitError
 from ..models import SessionSummary
@@ -17,9 +17,11 @@ from .index import is_weak_thread_name, load_existing_index
 from .session_parser import (
     looks_like_session_meta_text,
     normalize_session_text,
-    parse_jsonl_records as _parse_jsonl_records,
     parse_session_file,
     parse_session_summary_file,
+)
+from .session_parser import (
+    parse_jsonl_records as _parse_jsonl_records,
 )
 
 
@@ -30,7 +32,7 @@ def iter_session_files(paths: CodexPaths, *, active_only: bool = False) -> Itera
         yield from sorted(paths.archived_sessions_dir.rglob("rollout-*.jsonl"))
 
 
-def session_id_from_filename(path: Path) -> Optional[str]:
+def session_id_from_filename(path: Path) -> str | None:
     name = path.name
     match = re.match(r"^rollout-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-(.+)\.jsonl$", name)
     return match.group(1) if match else None
@@ -69,7 +71,7 @@ def build_session_preview(
     session_file: Path,
     cwd: str,
     *,
-    first_user_prompt: Optional[str] = None,
+    first_user_prompt: str | None = None,
 ) -> str:
     prompt = first_user_prompt_from_session(session_file) if first_user_prompt is None else first_user_prompt
     for candidate in (prompt, history_preview):
@@ -88,7 +90,7 @@ def build_session_preview(
     return session_file.name
 
 
-def parse_jsonl_records(path: Path) -> List[Tuple[str, Optional[dict]]]:
+def parse_jsonl_records(path: Path) -> list[tuple[str, dict | None]]:
     return _parse_jsonl_records(path)
 
 
@@ -111,7 +113,7 @@ def extract_last_timestamp(session_file: Path) -> str:
         return ""
 
 
-def find_session_file(paths: CodexPaths, session_id: str) -> Optional[Path]:
+def find_session_file(paths: CodexPaths, session_id: str) -> Path | None:
     validate_session_id(session_id)
     for session_file in iter_session_files(paths):
         if session_id_from_filename(session_file) == session_id:
@@ -123,12 +125,12 @@ def collect_session_summaries(
     paths: CodexPaths,
     *,
     pattern: str = "",
-    limit: Optional[int] = None,
+    limit: int | None = None,
     active_only: bool = False,
     desktop_only: bool = False,
     project_path: str = "",
-) -> List[SessionSummary]:
-    summaries: List[SessionSummary] = []
+) -> list[SessionSummary]:
+    summaries: list[SessionSummary] = []
     session_files = sorted(iter_session_files(paths, active_only=active_only), reverse=True)
     session_ids_by_path = {
         session_file: session_id_from_filename(session_file) or session_file.stem
@@ -221,8 +223,8 @@ def collect_session_ids_for_kind(
     *,
     session_kind: str,
     active_only: bool = False,
-) -> List[str]:
-    session_ids: List[str] = []
+) -> list[str]:
+    session_ids: list[str] = []
     seen_session_ids: set[str] = set()
 
     for path in iter_session_files(paths, active_only=active_only):
@@ -244,11 +246,11 @@ def collect_session_ids_for_project(
     *,
     project_path: str,
     active_only: bool = False,
-) -> List[str]:
+) -> list[str]:
     if not project_path:
         return []
 
-    session_ids: List[str] = []
+    session_ids: list[str] = []
     seen_session_ids: set[str] = set()
     for summary in collect_session_summaries(
         paths,

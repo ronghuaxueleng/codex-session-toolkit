@@ -45,7 +45,7 @@ def _provider_from_config(config_file: Path) -> str:
             provider = data.get("model_provider")
             if isinstance(provider, str) and provider:
                 return provider
-        except Exception:
+        except (OSError, ValueError, TypeError):
             pass
 
     text = config_file.read_text(encoding="utf-8")

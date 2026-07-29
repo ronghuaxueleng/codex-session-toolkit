@@ -7,14 +7,16 @@ import tempfile
 from collections import OrderedDict
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 from ..errors import ToolkitError
 from ..models import BatchExportResult, ExportResult, OperationWarning
 from ..paths import CodexPaths
-from ..services.export_planning import build_project_export_plan, build_session_kind_export_plan
-from ..stores.desktop_state import load_thread_metadata
+from ..services.export_planning import (
+    build_project_export_plan,
+    build_session_kind_export_plan,
+)
 from ..stores.bundle_repository import write_batch_export_manifest
+from ..stores.desktop_state import load_thread_metadata
 from ..stores.history import collect_history_lines_for_session, first_history_text
 from ..stores.index import is_weak_thread_name
 from ..stores.session_files import (
@@ -26,19 +28,28 @@ from ..stores.session_files import (
     session_id_from_filename,
 )
 from ..stores.session_parser import normalize_session_text, parse_session_summary_file
+from ..stores.skills import (
+    bundle_skills,
+    parse_skills_from_session,
+)
+from ..stores.skills_manifest import (
+    SKILLS_DIR_NAME,
+    SKILLS_MANIFEST_FILENAME,
+    write_skills_manifest,
+)
 from ..support import (
-    build_single_export_root,
     build_machine_bundle_root,
+    build_single_export_root,
     classify_session_kind,
     detect_machine_key,
     detect_machine_label,
     normalize_bundle_root,
 )
-from ..validation import normalize_relative_path, validate_jsonl_file, validate_session_id, write_manifest
-from ..stores.skills_manifest import SKILLS_DIR_NAME, SKILLS_MANIFEST_FILENAME, write_skills_manifest
-from ..stores.skills import (
-    bundle_skills,
-    parse_skills_from_session,
+from ..validation import (
+    normalize_relative_path,
+    validate_jsonl_file,
+    validate_session_id,
+    write_manifest,
 )
 
 
@@ -46,7 +57,7 @@ def export_session(
     paths: CodexPaths,
     session_id: str,
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     skills_mode: str = "best-effort",
 ) -> ExportResult:
     session_id = validate_session_id(session_id)
@@ -71,7 +82,7 @@ def export_session(
     final_bundle_dir = bundle_root / session_id
     stage_root = Path(tempfile.mkdtemp(prefix=".tmp.", dir=str(bundle_root)))
     stage_bundle_dir = stage_root
-    old_bundle_backup: Optional[Path] = None
+    old_bundle_backup: Path | None = None
 
     try:
         bundle_codex_dir = stage_bundle_dir / "codex"
@@ -177,7 +188,7 @@ def export_session(
         write_manifest(manifest_file, manifest_data)
 
         if final_bundle_dir.exists():
-            old_bundle_backup = bundle_root / f".{session_id}.bak.{int(datetime.now().timestamp())}"
+            old_bundle_backup = bundle_root / f".{session_id}.bak.{int(datetime.now(timezone.utc).timestamp())}"
             final_bundle_dir.rename(old_bundle_backup)
 
         try:
@@ -219,7 +230,7 @@ def export_selected_sessions(
     paths: CodexPaths,
     session_ids: list[str] | tuple[str, ...] = (),
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
     all_sessions: bool = False,
     skills_mode: str = "best-effort",
@@ -405,7 +416,7 @@ def export_sessions_for_kind(
 def export_desktop_all(
     paths: CodexPaths,
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
     active_only: bool = False,
     skills_mode: str = "best-effort",
@@ -426,7 +437,7 @@ def export_desktop_all(
 def export_active_desktop_all(
     paths: CodexPaths,
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
     skills_mode: str = "best-effort",
 ) -> BatchExportResult:
@@ -436,7 +447,7 @@ def export_active_desktop_all(
 def export_cli_all(
     paths: CodexPaths,
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
     skills_mode: str = "best-effort",
 ) -> BatchExportResult:
@@ -457,7 +468,7 @@ def export_project_sessions(
     paths: CodexPaths,
     project_path: str,
     *,
-    bundle_root: Optional[Path] = None,
+    bundle_root: Path | None = None,
     dry_run: bool = False,
     active_only: bool = False,
     skills_mode: str = "best-effort",

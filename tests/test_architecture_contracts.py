@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 import ast
 import unittest
 from pathlib import Path
 from typing import Iterable
-
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 PACKAGE_ROOT = ROOT_DIR / "src" / "codex_session_toolkit"

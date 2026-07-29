@@ -26,11 +26,11 @@ BUNDLE_WORKSPACE_WRITE_COMMANDS = {
 GITHUB_SYNC_COMMANDS = {"connect-github", "pull-github", "sync-github"}
 
 
-def invalidate_github_sync_hint(app: "ToolkitTuiApp") -> None:
-    setattr(app, "_github_sync_hint_cache", None)
+def invalidate_github_sync_hint(app: ToolkitTuiApp) -> None:
+    app._github_sync_hint_cache = None
 
 
-def github_sync_hint_lines(app: "ToolkitTuiApp", *, force: bool = False) -> list[str]:
+def github_sync_hint_lines(app: ToolkitTuiApp, *, force: bool = False) -> list[str]:
     cached = getattr(app, "_github_sync_hint_cache", None)
     now = time.monotonic()
     if not force and cached:
@@ -45,12 +45,12 @@ def github_sync_hint_lines(app: "ToolkitTuiApp", *, force: bool = False) -> list
     else:
         lines = [_format_local_sync_hint(status)]
 
-    setattr(app, "_github_sync_hint_cache", (now + LOCAL_SYNC_HINT_TTL_SECONDS, list(lines)))
+    app._github_sync_hint_cache = now + LOCAL_SYNC_HINT_TTL_SECONDS, list(lines)
     return lines
 
 
 def maybe_offer_github_sync_after_action(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     action_name: str,
     cli_args: Sequence[str],

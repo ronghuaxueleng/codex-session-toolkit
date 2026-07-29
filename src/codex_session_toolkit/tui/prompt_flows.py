@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from typing import TYPE_CHECKING, List, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Sequence
 
 from .navigation_state import apply_list_key
 from .terminal import (
@@ -23,20 +23,20 @@ if TYPE_CHECKING:
 
 
 def prompt_value(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
     prompt_label: str,
-    help_lines: List[str],
+    help_lines: list[str],
     default: str = "",
     allow_empty: bool = True,
-) -> Optional[str]:
+) -> str | None:
     box_width = app._print_branded_header(title)
     rendered_help = list(help_lines)
     rendered_help.append("输入 q 取消并返回。")
     for line in render_box(rendered_help, width=box_width, border_codes=(Ansi.DIM, Ansi.BLUE)):
         print(line)
-    print("")
+    print()
 
     suffix = f"（默认：{default}）" if default else ""
     raw = input(style_text(f"{prompt_label}{suffix}：", Ansi.BOLD, Ansi.CYAN)).strip()
@@ -52,7 +52,7 @@ def prompt_value(
 
 
 def confirm_toggle(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
     question: str,
@@ -76,12 +76,12 @@ def confirm_toggle(
 
 
 def render_prompt_choice(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
     prompt_label: str,
-    help_lines: List[str],
-    choices: Sequence[Tuple[str, str]],
+    help_lines: list[str],
+    choices: Sequence[tuple[str, str]],
     selected_index: int,
     allow_cancel: bool = True,
 ) -> None:
@@ -91,7 +91,7 @@ def render_prompt_choice(
     selected_index = max(0, min(selected_index, len(choices) - 1))
     _, selected_label = choices[selected_index]
 
-    header_lines: List[str] = []
+    header_lines: list[str] = []
     for line in app_logo_lines(max_width=100):
         header_lines.append(align_line(line, box_width, center=center))
     header_lines.append(align_line(style_text("Codex 会话工具箱", Ansi.BOLD, Ansi.CYAN), box_width, center=center))
@@ -155,14 +155,14 @@ def render_prompt_choice(
     sys.stdout.flush()
 
 
-def _prompt_screen_height(app: "ToolkitTuiApp") -> int:
+def _prompt_screen_height(app: ToolkitTuiApp) -> int:
     screen_height = getattr(app, "_screen_height", None)
     if callable(screen_height):
         return max(8, int(screen_height()))
     return max(8, term_height())
 
 
-def _fit_prompt_help_lines(help_lines: List[str], max_lines: int) -> List[str]:
+def _fit_prompt_help_lines(help_lines: list[str], max_lines: int) -> list[str]:
     if max_lines <= 0:
         return []
     if len(help_lines) <= max_lines:
@@ -174,15 +174,15 @@ def _fit_prompt_help_lines(help_lines: List[str], max_lines: int) -> List[str]:
 
 
 def prompt_choice(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
     prompt_label: str,
-    help_lines: List[str],
-    choices: Sequence[Tuple[str, str]],
+    help_lines: list[str],
+    choices: Sequence[tuple[str, str]],
     default: str = "",
     allow_cancel: bool = True,
-) -> Optional[str]:
+) -> str | None:
     if not choices:
         return None
 
@@ -267,11 +267,11 @@ def prompt_choice(
 
 
 def prompt_execution_mode(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     *,
     title: str,
     default_dry_run: bool = False,
-) -> Optional[bool]:
+) -> bool | None:
     choice = prompt_choice(
         app,
         title=title,
@@ -285,7 +285,7 @@ def prompt_execution_mode(
     return choice == "d"
 
 
-def prompt_desktop_repair_scope(app: "ToolkitTuiApp") -> Optional[bool]:
+def prompt_desktop_repair_scope(app: ToolkitTuiApp) -> bool | None:
     choice = prompt_choice(
         app,
         title="迁移会话到当前 Provider",
@@ -306,7 +306,7 @@ def prompt_desktop_repair_scope(app: "ToolkitTuiApp") -> Optional[bool]:
 
 
 def confirm_dangerous_action(
-    app: "ToolkitTuiApp",
+    app: ToolkitTuiApp,
     cli_args: Sequence[str],
     *,
     title: str = "危险操作确认",
@@ -326,5 +326,5 @@ def confirm_dangerous_action(
     ]
     for line in render_box(info_lines, width=box_width, border_codes=(Ansi.DIM, Ansi.RED)):
         print(line)
-    print("")
+    print()
     return input(style_text("请输入 DELETE 确认执行：", Ansi.BOLD, Ansi.RED)).strip() == "DELETE"

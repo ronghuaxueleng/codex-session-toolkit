@@ -8,7 +8,7 @@ import sys
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Iterable
 
 from ..support import normalize_iso
 
@@ -20,7 +20,7 @@ class SessionIndexEntry:
     updated_at: str
 
 
-def salvage_index_line(raw: str) -> Optional[dict]:
+def salvage_index_line(raw: str) -> dict | None:
     session_match = re.search(r'"id"\s*:\s*"([^"]+)"', raw)
     if not session_match:
         return None
@@ -29,7 +29,7 @@ def salvage_index_line(raw: str) -> Optional[dict]:
     raw_thread_name = thread_match.group(1) if thread_match else session_match.group(1)
     try:
         thread_name = json.loads(f'"{raw_thread_name}"')
-    except Exception:
+    except json.JSONDecodeError:
         thread_name = raw_thread_name.replace('\\"', '"')
 
     updated_match = re.search(
@@ -53,8 +53,8 @@ def is_weak_thread_name(thread_name: str, session_id: str) -> bool:
     )
 
 
-def load_existing_index(index_file: Path) -> Dict[str, dict]:
-    entries: Dict[str, dict] = {}
+def load_existing_index(index_file: Path) -> dict[str, dict]:
+    entries: dict[str, dict] = {}
     if not index_file.exists():
         return entries
 
@@ -65,7 +65,7 @@ def load_existing_index(index_file: Path) -> Dict[str, dict]:
                 continue
             try:
                 obj = json.loads(raw)
-            except Exception:
+            except json.JSONDecodeError:
                 obj = salvage_index_line(raw)
             if not isinstance(obj, dict):
                 continue
@@ -90,7 +90,7 @@ def upsert_session_index(index_file: Path, session_id: str, thread_name: str, up
                     continue
                 try:
                     obj = json.loads(raw)
-                except Exception:
+                except json.JSONDecodeError:
                     obj = salvage_index_line(raw)
                     if obj is None:
                         discarded_invalid_lines += 1

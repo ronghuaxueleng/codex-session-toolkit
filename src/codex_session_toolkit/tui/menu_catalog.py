@@ -6,12 +6,11 @@ actions. View models stay as passive data structures; menu ownership lives here.
 
 from __future__ import annotations
 
-from typing import List, Sequence
+from typing import Sequence
 
 from ..command_catalog import command_domain, command_domains
 from .terminal import Ansi
 from .view_models import TuiMenuAction, TuiMenuSection
-
 
 SECTION_TITLES = {
     "session": "Session / Browse",
@@ -175,7 +174,7 @@ def _menu_action(
     )
 
 
-def build_tui_menu_actions() -> List[TuiMenuAction]:
+def build_tui_menu_actions() -> list[TuiMenuAction]:
     return [
         _menu_action("list_sessions", "l", "浏览并导出会话", ("list", "--limit", "20")),
         _menu_action("project_sessions", "p", "按项目路径查看并导出会话"),
@@ -203,7 +202,7 @@ def build_tui_menu_actions() -> List[TuiMenuAction]:
     ]
 
 
-def build_tui_menu_sections() -> List[TuiMenuSection]:
+def build_tui_menu_sections() -> list[TuiMenuSection]:
     return [
         TuiMenuSection(
             SECTION_TITLES[domain],

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable, List, Mapping
+from typing import Iterable, Mapping
 
 from ..errors import ToolkitError
 from ..paths import CodexPaths
@@ -20,7 +20,7 @@ def resolve_bundle_dir(bundle_root: Path, session_id: str) -> Path:
     bundle_root = Path(bundle_root).expanduser()
 
     direct_candidate = bundle_root / session_id
-    candidates: List[Path] = []
+    candidates: list[Path] = []
     if (direct_candidate / "manifest.env").is_file():
         candidates.append(direct_candidate)
 
@@ -31,7 +31,7 @@ def resolve_bundle_dir(bundle_root: Path, session_id: str) -> Path:
         candidate_session_id = ""
         try:
             candidate_session_id = load_manifest(manifest_file).get("SESSION_ID", "")
-        except Exception:
+        except (OSError, ToolkitError):
             pass
         if bundle_dir.name == session_id or candidate_session_id == session_id:
             candidates.append(bundle_dir)

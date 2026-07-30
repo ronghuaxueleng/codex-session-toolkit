@@ -26,6 +26,7 @@ from ..presenters.reports import (
     print_session_backup_restore_result,
     print_session_backup_rows,
     print_session_delete_result,
+    print_session_reset_result,
     print_session_rows,
     print_skill_bundle_rows,
     print_skill_delete_result,
@@ -72,6 +73,7 @@ from ..services.importing import (
 )
 from ..services.repair import repair_desktop
 from ..services.session_deletion import delete_sessions
+from ..services.session_reset import reset_session
 from ..services.skills_transfer import (
     delete_local_skill,
     delete_local_skills,
@@ -425,6 +427,17 @@ def _handle_delete_sessions(args: argparse.Namespace, paths: CodexPaths) -> int:
     )
 
 
+def _handle_reset_session(args: argparse.Namespace, paths: CodexPaths) -> int:
+    return print_session_reset_result(
+        reset_session(
+            paths,
+            args.input_value,
+            title=args.title,
+            dry_run=args.dry_run,
+        )
+    )
+
+
 def _handle_repair_desktop(args: argparse.Namespace, paths: CodexPaths) -> int:
     return print_repair_result(
         repair_desktop(
@@ -466,6 +479,7 @@ COMMAND_HANDLERS: Mapping[str, CommandHandler] = {
     "restore-backup": _handle_restore_backup,
     "delete-backup": _handle_delete_backup,
     "delete-archived-sessions": _handle_delete_archived_sessions,
+    "reset-session": _handle_reset_session,
     "delete-sessions": _handle_delete_sessions,
     "repair-desktop": _handle_repair_desktop,
 }

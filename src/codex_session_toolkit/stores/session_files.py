@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import json
+import os
 import re
+import tempfile
 from pathlib import Path, PureWindowsPath
 from typing import Iterable
 
@@ -119,6 +122,42 @@ def find_session_file(paths: CodexPaths, session_id: str) -> Path | None:
         if session_id_from_filename(session_file) == session_id:
             return session_file
     return None
+
+
+def session_meta_line(session_file: Path) -> str:
+    with session_file.open("r", encoding="utf-8") as fh:
+        for raw in fh:
+            stripped = raw.strip()
+            if not stripped:
+                continue
+            try:
+                obj = json.loads(stripped)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(obj, dict) and obj.get("type") == "session_meta":
+                return raw if raw.endswith("\n") else raw + "\n"
+    raise ToolkitError(f"Session file does not contain session_meta: {session_file}")
+
+
+def reset_session_file_to_metadata(session_file: Path, *, dry_run: bool = False) -> tuple[int, int]:
+    metadata_line = session_meta_line(session_file)
+    original_bytes = session_file.stat().st_size
+    reset_bytes = len(metadata_line.encode("utf-8"))
+    if dry_run:
+        return original_bytes, reset_bytes
+
+    fd, temp_name = tempfile.mkstemp(prefix=session_file.name + ".", dir=session_file.parent)
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(metadata_line)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.chmod(temp_path, session_file.stat().st_mode)
+        os.replace(temp_path, session_file)
+    finally:
+        temp_path.unlink(missing_ok=True)
+    return original_bytes, reset_bytes
 
 
 def collect_session_summaries(

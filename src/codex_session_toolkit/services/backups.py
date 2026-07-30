@@ -20,7 +20,7 @@ from ..stores.session_parser import parse_session_summary_file
 from ..support import ensure_path_within_dir
 from ..validation import validate_jsonl_file, validate_session_id
 
-BACKUP_NAME_RE = re.compile(r"^(rollout-.+\.jsonl)\.bak(?:\.(restore))?\.(\d+)$")
+BACKUP_NAME_RE = re.compile(r"^(rollout-.+\.jsonl)\.bak(?:\.(restore|reset))?\.(\d+)$")
 
 
 def list_session_backups(
@@ -164,7 +164,7 @@ def _summarize_backup(paths: CodexPaths, backup_path: Path) -> SessionBackupSumm
     if not match:
         return None
 
-    base_name, restore_marker, epoch_text = match.groups()
+    base_name, backup_marker, epoch_text = match.groups()
     session_id = session_id_from_filename(Path(base_name))
     if not session_id:
         return None
@@ -174,7 +174,10 @@ def _summarize_backup(paths: CodexPaths, backup_path: Path) -> SessionBackupSumm
     ensure_path_within_dir(target_path, backup_root, "Session backup target")
 
     backup_epoch = int(epoch_text)
-    backup_kind = "restore-safety" if restore_marker else "import-overwrite"
+    backup_kind = {
+        "restore": "restore-safety",
+        "reset": "session-reset",
+    }.get(backup_marker, "import-overwrite")
     backup_time_label = datetime.fromtimestamp(backup_epoch, tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
     scope = "archived" if backup_root == paths.archived_sessions_dir else "active"
     size_bytes = backup_path.stat().st_size if backup_path.exists() else 0

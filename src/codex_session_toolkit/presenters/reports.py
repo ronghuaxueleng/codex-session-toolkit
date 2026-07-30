@@ -26,6 +26,7 @@ from ..models import (
     SessionBackupRestoreResult,
     SessionBackupSummary,
     SessionDeleteResult,
+    SessionResetResult,
     SessionSummary,
     SkillBundleSummary,
     SkillDeleteResult,
@@ -368,6 +369,18 @@ def print_session_delete_result(result: SessionDeleteResult) -> int:
         if len(result.files_to_delete) > 20:
             print(f"[DRY-RUN] ... +{len(result.files_to_delete) - 20} more")
     return 1 if result.errors else 0
+
+
+def print_session_reset_result(result: SessionResetResult) -> int:
+    action = "Would reset session" if result.dry_run else "Reset session"
+    print(f"{action}: {result.session_id}")
+    print(f"Session: {result.session_path}")
+    print(f"Backup: {result.backup_path}")
+    print(f"Bytes: {result.original_bytes} -> {result.reset_bytes}")
+    print(f"History entries removed: {result.history_entries_removed}")
+    print(f"Threads table rows updated: {result.thread_rows_updated}")
+    print(f"Session index updated: {'yes' if result.index_updated else 'no'}")
+    return 0
 
 
 def print_github_connect_result(result: GitHubConnectResult) -> int:

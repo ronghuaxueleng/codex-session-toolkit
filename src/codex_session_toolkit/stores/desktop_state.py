@@ -505,6 +505,58 @@ def load_thread_metadata(
         conn.close()
 
 
+def reset_thread_for_empty_session(
+    state_db: Path | None,
+    session_id: str,
+    *,
+    title: str,
+    dry_run: bool = False,
+) -> int:
+    if not state_db or not state_db.is_file():
+        return 0
+
+    conn = sqlite3.connect(state_db)
+    cur = conn.cursor()
+    try:
+        row = cur.execute("select name from sqlite_master where type='table' and name='threads'").fetchone()
+        if not row:
+            return 0
+        columns = {r[1] for r in cur.execute("pragma table_info(threads)").fetchall()}
+        if "id" not in columns:
+            return 0
+        if not cur.execute("select 1 from threads where id = ?", (session_id,)).fetchone():
+            return 0
+        if dry_run:
+            return 1
+
+        now_ms = int(time.time() * 1000)
+        updates: dict[str, object] = {
+            "title": title,
+            "first_user_message": "",
+            "preview": title,
+            "tokens_used": 0,
+            "has_user_event": 0,
+            "updated_at": now_ms // 1000,
+            "updated_at_ms": now_ms,
+            "recency_at": now_ms // 1000,
+            "recency_at_ms": now_ms,
+        }
+        available_updates = {name: value for name, value in updates.items() if name in columns}
+        assignments = ", ".join(f"{name} = ?" for name in available_updates)
+        cur.execute(
+            f"update threads set {assignments} where id = ?",
+            [*available_updates.values(), session_id],
+        )
+        if cur.execute(
+            "select name from sqlite_master where type='table' and name='thread_dynamic_tools'"
+        ).fetchone():
+            cur.execute("delete from thread_dynamic_tools where thread_id = ?", (session_id,))
+        conn.commit()
+        return 1
+    finally:
+        conn.close()
+
+
 def prepare_session_for_import(
     source_session: Path,
     prepared_session: Path,

@@ -605,6 +605,26 @@ class TuiBrowserRenderingTests(unittest.TestCase):
         self.assertEqual(app.run_calls[0][1], ["delete-sessions", str(active_summary(session_id).path)])
         self.assertTrue(app.run_calls[0][2]["danger"])
 
+    def test_session_browser_reset_key_resets_current_only(self) -> None:
+        session_id = "11111111-2222-4333-8444-555555555555"
+        app = FakeSessionBrowserApp()
+
+        with ExitStack() as stack:
+            stack.enter_context(patch("codex_session_toolkit.tui.browser_flows.read_key", side_effect=["r", "q"]))
+            stack.enter_context(
+                patch(
+                    "codex_session_toolkit.tui.browser_flows.get_session_summaries",
+                    return_value=[active_summary(session_id)],
+                )
+            )
+            stack.enter_context(redirect_stdout(TtyStringIO()))
+            open_session_browser(app, mode="view")
+
+        self.assertEqual(app.confirm_calls[0][0], ["reset-session", str(active_summary(session_id).path)])
+        self.assertEqual(app.run_calls[0][0], f"重置会话 {session_id}")
+        self.assertEqual(app.run_calls[0][1], ["reset-session", str(active_summary(session_id).path)])
+        self.assertTrue(app.run_calls[0][2]["danger"])
+
     def test_project_session_browser_can_export_current_session(self) -> None:
         session_id = "11111111-2222-4333-8444-555555555555"
         app = FakeProjectSessionBrowserApp()
@@ -624,6 +644,24 @@ class TuiBrowserRenderingTests(unittest.TestCase):
         self.assertEqual(action_name, f"导出会话 {session_id} 为 Bundle")
         self.assertEqual(cli_args, ["export", session_id])
         self.assertFalse(kwargs["danger"])
+
+    def test_project_session_browser_can_reset_current_session(self) -> None:
+        session_id = "11111111-2222-4333-8444-555555555555"
+        app = FakeProjectSessionBrowserApp()
+
+        with ExitStack() as stack:
+            stack.enter_context(patch("codex_session_toolkit.tui.browser_flows.read_key", side_effect=["r", "q"]))
+            stack.enter_context(
+                patch(
+                    "codex_session_toolkit.tui.browser_flows.get_project_session_summaries",
+                    return_value=[active_summary(session_id)],
+                )
+            )
+            stack.enter_context(redirect_stdout(TtyStringIO()))
+            open_project_session_browser(app)
+
+        self.assertEqual(app.confirm_calls[0][0], ["reset-session", str(active_summary(session_id).path)])
+        self.assertEqual(app.run_calls[0][1], ["reset-session", str(active_summary(session_id).path)])
 
     def test_project_session_browser_can_export_checked_sessions(self) -> None:
         first_id = "11111111-2222-4333-8444-555555555555"

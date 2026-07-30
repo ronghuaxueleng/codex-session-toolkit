@@ -371,6 +371,19 @@ class SessionDeleteResult:
 
 
 @dataclass(frozen=True)
+class SessionResetResult:
+    session_id: str
+    session_path: Path
+    backup_path: Path
+    dry_run: bool
+    original_bytes: int
+    reset_bytes: int
+    history_entries_removed: int = 0
+    thread_rows_updated: int = 0
+    index_updated: bool = False
+
+
+@dataclass(frozen=True)
 class BatchExportResult:
     summary_label: str
     bundle_root: Path

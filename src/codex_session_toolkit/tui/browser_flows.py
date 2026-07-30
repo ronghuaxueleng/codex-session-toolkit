@@ -118,7 +118,7 @@ def open_project_session_browser(app: ToolkitTuiApp) -> None:
 
         selected_index = clamp_selected_index(selected_index, len(entries))
         box_width, center = app._screen_layout()
-        subtitle = "↑/↓ 选择 · 空格勾选 · Enter/d 详情 · e 导出选中/当前 · a 选中全部 · / 搜索 · p 修改路径 · q 返回"
+        subtitle = "↑/↓ 选择 · 空格勾选 · Enter/d 详情 · e 导出 · r 重置当前 · a 选中全部 · / 搜索 · p 修改路径 · q 返回"
 
         info_lines = [
             f"{style_text('项目名', Ansi.DIM)} : {project_label}",
@@ -172,7 +172,7 @@ def open_project_session_browser(app: ToolkitTuiApp) -> None:
 
         key = read_key()
         if key is None:
-            raw = input("命令 [Enter/空格/e/a/\\/d/p/q]：").strip()
+            raw = input("命令 [Enter/空格/e/r/a/\\/d/p/q]：").strip()
             key = raw if raw else "ENTER"
 
         if key == " " and entries:
@@ -224,6 +224,11 @@ def open_project_session_browser(app: ToolkitTuiApp) -> None:
             _run_selected_session_export(app, selected_entries)
             selected_session_ids.clear()
             continue
+        if key_str == "r" and entries:
+            _run_session_reset(app, entries[selected_index])
+            selected_session_ids.clear()
+            needs_reload = True
+            continue
         if key_str == "a":
             all_entries = _all_project_session_entries_for_current_filter(
                 app,
@@ -257,7 +262,7 @@ def open_session_browser(app: ToolkitTuiApp, *, mode: str) -> SessionSummary | N
         selected_index = clamp_selected_index(selected_index, len(entries))
         box_width, center = app._screen_layout()
         subtitle = (
-            "↑/↓ 选择 · 空格勾选 · Enter/d 详情 · / 搜索 · e 导出选中/当前 · x 删除选中/当前 · a 选中全部 · q 返回"
+            "↑/↓ 选择 · 空格勾选 · Enter/d 详情 · / 搜索 · e 导出 · r 重置当前 · x 删除 · a 选中全部 · q 返回"
             if mode == "view"
             else "↑/↓ 选择 · Enter 确认 · / 搜索 · d 查看详情 · q 返回"
         )
@@ -313,7 +318,7 @@ def open_session_browser(app: ToolkitTuiApp, *, mode: str) -> SessionSummary | N
 
         key = read_key()
         if key is None:
-            raw_prompt = "命令 [Enter/空格/e/x/a/\\/d/q]：" if mode == "view" else "命令 [Enter/\\/d/q]："
+            raw_prompt = "命令 [Enter/空格/e/r/x/a/\\/d/q]：" if mode == "view" else "命令 [Enter/\\/d/q]："
             raw = input(raw_prompt).strip()
             key = raw if raw else "ENTER"
 
@@ -377,6 +382,11 @@ def open_session_browser(app: ToolkitTuiApp, *, mode: str) -> SessionSummary | N
                 key_fn=_session_selection_key,
             )
             _run_selected_session_delete(app, selected_entries)
+            selected_session_keys.clear()
+            needs_reload = True
+            continue
+        if key_str == "r" and entries and mode == "view":
+            _run_session_reset(app, entries[selected_index])
             selected_session_keys.clear()
             needs_reload = True
             continue
@@ -534,6 +544,25 @@ def _run_selected_session_delete(app: ToolkitTuiApp, summaries: list[SessionSumm
         return
     app._run_action(
         f"删除会话 {summaries[0].session_id}" if count == 1 else f"删除 {count} 个会话",
+        cli_args,
+        dry_run=False,
+        runner=lambda args=cli_args: app._run_toolkit(args),
+        danger=True,
+    )
+
+
+def _run_session_reset(app: ToolkitTuiApp, summary: SessionSummary) -> None:
+    cli_args = ["reset-session", str(summary.path)]
+    if not app._confirm_dangerous_action(
+        cli_args,
+        title="重置会话确认",
+        subtitle="该操作保留 session ID，但会清空该会话的全部对话和工具记录。",
+        warning=f"将把会话 {summary.session_id} 重置为空会话。",
+        impact=f"{summary.path}（原内容会先自动备份）",
+    ):
+        return
+    app._run_action(
+        f"重置会话 {summary.session_id}",
         cli_args,
         dry_run=False,
         runner=lambda args=cli_args: app._run_toolkit(args),

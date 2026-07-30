@@ -169,6 +169,12 @@ class ArchitectureContractsTests(unittest.TestCase):
                 unclassified.append(str(path.relative_to(ROOT_DIR)))
         self.assertEqual(unclassified, [])
 
+    def test_session_reset_is_classified_as_a_service(self) -> None:
+        self.assertEqual(
+            _layer_for_module("codex_session_toolkit.services.session_reset"),
+            "service",
+        )
+
     def test_store_layer_does_not_depend_on_workflows_or_ui(self) -> None:
         _assert_no_blocked_imports(
             self,

@@ -82,6 +82,9 @@ from codex_session_toolkit.services.repair import repair_desktop
 from codex_session_toolkit.services.session_deletion import (
     delete_sessions,
 )
+from codex_session_toolkit.services.session_reset import (
+    reset_session,
+)
 from codex_session_toolkit.services.skills_transfer import (
     delete_local_skill,
     delete_local_skills,
@@ -3631,6 +3634,111 @@ AA machine-a\skills\all\20260502\demo-skill\SKILL.md
             self.assertEqual(result.thread_rows_removed, 1)
             self.assertEqual(result.thread_rows_restored, 0)
             self.assertEqual(result.index_entries_removed, 1)
+
+    def test_reset_session_preserves_id_and_clears_conversation_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir) / "workspace"
+            home = Path(tmpdir) / "home"
+            workspace.mkdir()
+            db_path = create_threads_db(home)
+            session_id = "88888888-9999-4aaa-bbbb-cccccccccccc"
+            other_id = "99999999-aaaa-4bbb-cccc-dddddddddddd"
+            session_file = write_session(
+                home,
+                session_id,
+                provider="provider",
+                source="cli",
+                originator="codex-tui",
+                cwd=workspace,
+                user_message="old conversation",
+            )
+            write_history(home, session_id, "old prompt")
+            write_history(home, other_id, "keep prompt")
+
+            conn = sqlite3.connect(db_path)
+            conn.execute(
+                """
+                insert into threads (
+                    id, rollout_path, created_at, updated_at, source, model_provider, cwd, title,
+                    sandbox_policy, approval_mode, tokens_used, has_user_event, archived, cli_version,
+                    first_user_message, memory_mode
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    str(session_file),
+                    1,
+                    2,
+                    "cli",
+                    "provider",
+                    str(workspace),
+                    "old title",
+                    "{}",
+                    "never",
+                    1234,
+                    1,
+                    0,
+                    "0.1.0",
+                    "old prompt",
+                    "enabled",
+                ),
+            )
+            conn.commit()
+            conn.close()
+
+            paths = CodexPaths(home=home)
+            original_content = session_file.read_text(encoding="utf-8")
+            dry_run = reset_session(paths, str(session_file), dry_run=True)
+            self.assertTrue(dry_run.dry_run)
+            self.assertEqual(dry_run.history_entries_removed, 1)
+            self.assertEqual(dry_run.thread_rows_updated, 1)
+            self.assertTrue(dry_run.index_updated)
+            self.assertEqual(session_file.read_text(encoding="utf-8"), original_content)
+            self.assertFalse(dry_run.backup_path.exists())
+
+            result = reset_session(paths, str(session_file))
+
+            self.assertEqual(result.session_id, session_id)
+            self.assertTrue(result.backup_path.exists())
+            self.assertEqual(result.history_entries_removed, 1)
+            self.assertEqual(result.thread_rows_updated, 1)
+            reset_rows = [
+                json.loads(raw)
+                for raw in session_file.read_text(encoding="utf-8").splitlines()
+                if raw.strip()
+            ]
+            self.assertEqual(len(reset_rows), 1)
+            self.assertEqual(reset_rows[0]["type"], "session_meta")
+            self.assertEqual(reset_rows[0]["payload"]["id"], session_id)
+            self.assertIn("old conversation", result.backup_path.read_text(encoding="utf-8"))
+
+            history_rows = [
+                json.loads(raw)
+                for raw in paths.history_file.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual([row["session_id"] for row in history_rows], [other_id])
+
+            conn = sqlite3.connect(db_path)
+            row = conn.execute(
+                """
+                select title, tokens_used, has_user_event, first_user_message
+                from threads where id = ?
+                """,
+                (session_id,),
+            ).fetchone()
+            conn.close()
+            self.assertEqual(row, ("空会话（已重置）", 0, 0, ""))
+
+            index_rows = [
+                json.loads(raw)
+                for raw in paths.index_file.read_text(encoding="utf-8").splitlines()
+            ]
+            self.assertEqual(index_rows[-1]["id"], session_id)
+            self.assertEqual(index_rows[-1]["thread_name"], "空会话（已重置）")
+
+            backups = list_session_backups(paths, pattern=session_id)
+            self.assertEqual(backups[0].backup_kind, "session-reset")
+            self.assertEqual(backups[0].backup_path, result.backup_path)
 
     def test_repair_desktop_repairs_desktop_registered_cli_session(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

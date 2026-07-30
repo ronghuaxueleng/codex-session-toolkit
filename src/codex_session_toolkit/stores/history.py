@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from pathlib import Path
 from typing import AbstractSet, Sequence
 
@@ -72,3 +74,42 @@ def first_history_text(history_lines: Sequence[str]) -> str:
         if isinstance(text, str):
             return text.replace("\n", " ")
     return ""
+
+
+def remove_history_entries_for_session(
+    history_file: Path,
+    session_id: str,
+    *,
+    dry_run: bool = False,
+) -> int:
+    if not history_file.exists():
+        return 0
+
+    kept_lines: list[str] = []
+    removed = 0
+    with history_file.open("r", encoding="utf-8") as fh:
+        for raw in fh:
+            try:
+                obj = json.loads(raw)
+            except json.JSONDecodeError:
+                kept_lines.append(raw)
+                continue
+            if isinstance(obj, dict) and obj.get("session_id") == session_id:
+                removed += 1
+            else:
+                kept_lines.append(raw)
+
+    if removed and not dry_run:
+        history_file.parent.mkdir(parents=True, exist_ok=True)
+        fd, temp_name = tempfile.mkstemp(prefix=history_file.name + ".", dir=history_file.parent)
+        temp_path = Path(temp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.writelines(kept_lines)
+                fh.flush()
+                os.fsync(fh.fileno())
+            os.chmod(temp_path, history_file.stat().st_mode)
+            os.replace(temp_path, history_file)
+        finally:
+            temp_path.unlink(missing_ok=True)
+    return removed

@@ -27,6 +27,7 @@ from .models import (
     SessionBackupRestoreResult,
     SessionBackupSummary,
     SessionDeleteResult,
+    SessionResetResult,
     SessionSummary,
     ValidationReport,
 )
@@ -51,6 +52,7 @@ from .presenters.reports import (
     print_session_backup_restore_result,
     print_session_backup_rows,
     print_session_delete_result,
+    print_session_reset_result,
     print_session_rows,
     print_validation_report,
 )
@@ -95,6 +97,7 @@ from .services.importing import (
 from .services.provider import detect_provider
 from .services.repair import repair_desktop
 from .services.session_deletion import delete_sessions
+from .services.session_reset import reset_session
 from .services.skills_transfer import (
     export_skills,
     import_selected_skill_bundles,
@@ -164,6 +167,7 @@ __all__ = [
     "SessionBackupRestoreResult",
     "SessionBackupSummary",
     "SessionDeleteResult",
+    "SessionResetResult",
     "SessionSummary",
     "ToolkitError",
     "ValidationReport",
@@ -176,6 +180,7 @@ __all__ = [
     "delete_migrated_original_sessions",
     "delete_session_backup",
     "delete_sessions",
+    "reset_session",
     "detect_provider",
     "export_active_desktop_all",
     "export_cli_all",
@@ -218,6 +223,7 @@ __all__ = [
     "print_session_backup_restore_result",
     "print_session_backup_rows",
     "print_session_delete_result",
+    "print_session_reset_result",
     "print_session_rows",
     "print_validation_report",
     "pull_bundles_from_github",

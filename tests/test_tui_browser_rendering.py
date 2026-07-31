@@ -135,6 +135,8 @@ class FakeSessionBrowserApp:
         self.run_calls = []
         self.detail_calls = []
         self.confirm_calls = []
+        self.prompt_choice_calls = []
+        self.prompt_choice_answers = []
 
     def _screen_layout(self):
         return 80, True
@@ -154,6 +156,12 @@ class FakeSessionBrowserApp:
     def _confirm_dangerous_action(self, cli_args, **kwargs):
         self.confirm_calls.append((list(cli_args), kwargs))
         return True
+
+    def _prompt_choice(self, **kwargs):
+        self.prompt_choice_calls.append(kwargs)
+        if self.prompt_choice_answers:
+            return self.prompt_choice_answers.pop(0)
+        return kwargs.get("default")
 
     def _run_action(self, action_name, cli_args, **kwargs):
         self.run_calls.append((action_name, list(cli_args), kwargs))
@@ -620,10 +628,17 @@ class TuiBrowserRenderingTests(unittest.TestCase):
             stack.enter_context(redirect_stdout(TtyStringIO()))
             open_session_browser(app, mode="view")
 
-        self.assertEqual(app.confirm_calls[0][0], ["reset-session", str(active_summary(session_id).path)])
+        self.assertEqual(
+            app.confirm_calls[0][0],
+            ["reset-session", str(active_summary(session_id).path), "--no-backup"],
+        )
         self.assertEqual(app.run_calls[0][0], f"重置会话 {session_id}")
-        self.assertEqual(app.run_calls[0][1], ["reset-session", str(active_summary(session_id).path)])
+        self.assertEqual(
+            app.run_calls[0][1],
+            ["reset-session", str(active_summary(session_id).path), "--no-backup"],
+        )
         self.assertTrue(app.run_calls[0][2]["danger"])
+        self.assertEqual(app.prompt_choice_calls[0]["default"], "n")
 
     def test_project_session_browser_can_export_current_session(self) -> None:
         session_id = "11111111-2222-4333-8444-555555555555"
@@ -660,8 +675,39 @@ class TuiBrowserRenderingTests(unittest.TestCase):
             stack.enter_context(redirect_stdout(TtyStringIO()))
             open_project_session_browser(app)
 
-        self.assertEqual(app.confirm_calls[0][0], ["reset-session", str(active_summary(session_id).path)])
-        self.assertEqual(app.run_calls[0][1], ["reset-session", str(active_summary(session_id).path)])
+        self.assertEqual(
+            app.confirm_calls[0][0],
+            ["reset-session", str(active_summary(session_id).path), "--no-backup"],
+        )
+        self.assertEqual(
+            app.run_calls[0][1],
+            ["reset-session", str(active_summary(session_id).path), "--no-backup"],
+        )
+
+    def test_session_browser_can_reset_without_backup(self) -> None:
+        session_id = "11111111-2222-4333-8444-555555555555"
+        app = FakeSessionBrowserApp()
+        app.prompt_choice_answers = ["n"]
+
+        with ExitStack() as stack:
+            stack.enter_context(patch("codex_session_toolkit.tui.browser_flows.read_key", side_effect=["r", "q"]))
+            stack.enter_context(
+                patch(
+                    "codex_session_toolkit.tui.browser_flows.get_session_summaries",
+                    return_value=[active_summary(session_id)],
+                )
+            )
+            stack.enter_context(redirect_stdout(TtyStringIO()))
+            open_session_browser(app, mode="view")
+
+        self.assertEqual(
+            app.confirm_calls[0][0],
+            ["reset-session", str(active_summary(session_id).path), "--no-backup"],
+        )
+        self.assertEqual(
+            app.run_calls[0][1],
+            ["reset-session", str(active_summary(session_id).path), "--no-backup"],
+        )
 
     def test_project_session_browser_can_export_checked_sessions(self) -> None:
         first_id = "11111111-2222-4333-8444-555555555555"

@@ -374,7 +374,7 @@ class SessionDeleteResult:
 class SessionResetResult:
     session_id: str
     session_path: Path
-    backup_path: Path
+    backup_path: Path | None
     dry_run: bool
     original_bytes: int
     reset_bytes: int

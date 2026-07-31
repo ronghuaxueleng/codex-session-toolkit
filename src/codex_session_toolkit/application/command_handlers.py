@@ -428,11 +428,15 @@ def _handle_delete_sessions(args: argparse.Namespace, paths: CodexPaths) -> int:
 
 
 def _handle_reset_session(args: argparse.Namespace, paths: CodexPaths) -> int:
+    create_backup = bool(args.backup)
+    if args.no_backup:
+        create_backup = False
     return print_session_reset_result(
         reset_session(
             paths,
             args.input_value,
             title=args.title,
+            create_backup=create_backup,
             dry_run=args.dry_run,
         )
     )

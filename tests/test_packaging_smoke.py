@@ -1146,7 +1146,7 @@ class PackagingSmokeTests(unittest.TestCase):
         )
         self.assertTrue(parsed.dry_run)
 
-    def test_reset_session_parser_accepts_id_title_and_dry_run(self) -> None:
+    def test_reset_session_parser_accepts_id_title_no_backup_and_dry_run(self) -> None:
         parser = build_command_parser()
 
         parsed = parser.parse_args([
@@ -1154,12 +1154,27 @@ class PackagingSmokeTests(unittest.TestCase):
             "session-a",
             "--title",
             "Fresh session",
+            "--no-backup",
             "--dry-run",
         ])
 
         self.assertEqual(parsed.input_value, "session-a")
         self.assertEqual(parsed.title, "Fresh session")
+        self.assertTrue(parsed.no_backup)
         self.assertTrue(parsed.dry_run)
+
+    def test_reset_session_parser_accepts_backup_flag(self) -> None:
+        parser = build_command_parser()
+
+        parsed = parser.parse_args([
+            "reset-session",
+            "session-a",
+            "--backup",
+        ])
+
+        self.assertEqual(parsed.input_value, "session-a")
+        self.assertTrue(parsed.backup)
+        self.assertFalse(parsed.no_backup)
 
     def test_skills_parsers_accept_multiple_selected_inputs(self) -> None:
         parser = build_command_parser()

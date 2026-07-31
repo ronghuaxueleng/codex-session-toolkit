@@ -3688,7 +3688,7 @@ AA machine-a\skills\all\20260502\demo-skill\SKILL.md
 
             paths = CodexPaths(home=home)
             original_content = session_file.read_text(encoding="utf-8")
-            dry_run = reset_session(paths, str(session_file), dry_run=True)
+            dry_run = reset_session(paths, str(session_file), create_backup=True, dry_run=True)
             self.assertTrue(dry_run.dry_run)
             self.assertEqual(dry_run.history_entries_removed, 1)
             self.assertEqual(dry_run.thread_rows_updated, 1)
@@ -3696,7 +3696,7 @@ AA machine-a\skills\all\20260502\demo-skill\SKILL.md
             self.assertEqual(session_file.read_text(encoding="utf-8"), original_content)
             self.assertFalse(dry_run.backup_path.exists())
 
-            result = reset_session(paths, str(session_file))
+            result = reset_session(paths, str(session_file), create_backup=True)
 
             self.assertEqual(result.session_id, session_id)
             self.assertTrue(result.backup_path.exists())
@@ -3739,6 +3739,66 @@ AA machine-a\skills\all\20260502\demo-skill\SKILL.md
             backups = list_session_backups(paths, pattern=session_id)
             self.assertEqual(backups[0].backup_kind, "session-reset")
             self.assertEqual(backups[0].backup_path, result.backup_path)
+
+    def test_reset_session_can_skip_backup_creation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir) / "workspace"
+            home = Path(tmpdir) / "home"
+            workspace.mkdir()
+            db_path = create_threads_db(home)
+            session_id = "78787878-9999-4aaa-bbbb-cccccccccccc"
+            session_file = write_session(
+                home,
+                session_id,
+                provider="provider",
+                source="cli",
+                originator="codex-tui",
+                cwd=workspace,
+                user_message="old conversation",
+            )
+            write_history(home, session_id, "old prompt")
+
+            conn = sqlite3.connect(db_path)
+            conn.execute(
+                """
+                insert into threads (
+                    id, rollout_path, created_at, updated_at, source, model_provider, cwd, title,
+                    sandbox_policy, approval_mode, tokens_used, has_user_event, archived, cli_version,
+                    first_user_message, memory_mode
+                ) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    session_id,
+                    str(session_file),
+                    1,
+                    2,
+                    "cli",
+                    "provider",
+                    str(workspace),
+                    "old title",
+                    "{}",
+                    "never",
+                    1234,
+                    1,
+                    0,
+                    "0.1.0",
+                    "old prompt",
+                    "enabled",
+                ),
+            )
+            conn.commit()
+            conn.close()
+
+            paths = CodexPaths(home=home)
+            dry_run = reset_session(paths, str(session_file), create_backup=False, dry_run=True)
+            self.assertIsNone(dry_run.backup_path)
+
+            result = reset_session(paths, str(session_file), create_backup=False)
+
+            self.assertIsNone(result.backup_path)
+            self.assertEqual(result.history_entries_removed, 1)
+            self.assertEqual(result.thread_rows_updated, 1)
+            self.assertEqual(list_session_backups(paths, pattern=session_id), [])
 
     def test_repair_desktop_repairs_desktop_registered_cli_session(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -553,12 +553,34 @@ def _run_selected_session_delete(app: ToolkitTuiApp, summaries: list[SessionSumm
 
 def _run_session_reset(app: ToolkitTuiApp, summary: SessionSummary) -> None:
     cli_args = ["reset-session", str(summary.path)]
+    backup_mode = app._prompt_choice(
+        title="重置会话备份方式",
+        prompt_label="选择重置方式",
+        help_lines=[
+            "保留 session ID，并把会话内容清空为仅保留 metadata 的空会话。",
+            "可先创建本地备份，也可直接原地清空不留 .bak.reset 文件。",
+        ],
+        choices=[
+            ("b", "先备份再重置"),
+            ("n", "不备份直接重置"),
+            ("q", "返回"),
+        ],
+        default="n",
+    )
+    if backup_mode not in {"b", "n"}:
+        return
+    if backup_mode == "n":
+        cli_args.append("--no-backup")
     if not app._confirm_dangerous_action(
         cli_args,
         title="重置会话确认",
         subtitle="该操作保留 session ID，但会清空该会话的全部对话和工具记录。",
         warning=f"将把会话 {summary.session_id} 重置为空会话。",
-        impact=f"{summary.path}（原内容会先自动备份）",
+        impact=(
+            f"{summary.path}（原内容会先自动备份）"
+            if backup_mode == "b"
+            else f"{summary.path}（原内容将被直接清空，不生成备份）"
+        ),
     ):
         return
     app._run_action(

@@ -28,6 +28,7 @@ def reset_session(
     input_value: str,
     *,
     title: str = DEFAULT_RESET_SESSION_TITLE,
+    create_backup: bool = False,
     dry_run: bool = False,
 ) -> SessionResetResult:
     session_path = _resolve_session_path(paths, input_value)
@@ -48,7 +49,7 @@ def reset_session(
         title=title,
         dry_run=True,
     )
-    backup_path = _next_reset_backup_path(session_path)
+    backup_path = _next_reset_backup_path(session_path) if create_backup else None
 
     if dry_run:
         return SessionResetResult(
@@ -63,7 +64,8 @@ def reset_session(
             index_updated=True,
         )
 
-    shutil.copy2(session_path, backup_path)
+    if backup_path is not None:
+        shutil.copy2(session_path, backup_path)
     reset_session_file_to_metadata(session_path)
     history_entries_removed = remove_history_entries_for_session(paths.history_file, session_id)
     thread_rows_updated = reset_thread_for_empty_session(

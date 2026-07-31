@@ -198,6 +198,8 @@ def create_parser() -> argparse.ArgumentParser:
     reset_session_parser = subparsers.add_parser("reset-session", help=command_help("reset-session"))
     reset_session_parser.add_argument("input_value", help="Session id or exact rollout file path to reset")
     reset_session_parser.add_argument("--title", default="空会话（已重置）", help="Visible title after reset")
+    reset_session_parser.add_argument("--backup", action="store_true", help="Create a .bak.reset backup before clearing the session")
+    reset_session_parser.add_argument("--no-backup", action="store_true", help="Reset in place without creating a .bak.reset backup")
     reset_session_parser.add_argument("--dry-run", action="store_true", help="Preview the reset without writing")
 
     delete_sessions_parser = subparsers.add_parser("delete-sessions", help=command_help("delete-sessions"))

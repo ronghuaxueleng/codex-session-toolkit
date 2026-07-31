@@ -375,7 +375,7 @@ def print_session_reset_result(result: SessionResetResult) -> int:
     action = "Would reset session" if result.dry_run else "Reset session"
     print(f"{action}: {result.session_id}")
     print(f"Session: {result.session_path}")
-    print(f"Backup: {result.backup_path}")
+    print(f"Backup: {result.backup_path if result.backup_path is not None else '(disabled)'}")
     print(f"Bytes: {result.original_bytes} -> {result.reset_bytes}")
     print(f"History entries removed: {result.history_entries_removed}")
     print(f"Threads table rows updated: {result.thread_rows_updated}")
